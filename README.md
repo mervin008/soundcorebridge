@@ -7,6 +7,15 @@
 <p align="center">Control your Soundcore headphones from your Mac.</p>
 
 <p align="center">
+  <a href="https://github.com/mervin008/soundcorebridge/stargazers"><img src="https://img.shields.io/github/stars/mervin008/soundcorebridge?style=flat&labelColor=0a1116&color=51e5ff" alt="Stars"></a>
+  <a href="https://github.com/mervin008/soundcorebridge/releases/latest"><img src="https://img.shields.io/github/v/release/mervin008/soundcorebridge?style=flat&labelColor=0a1116&color=51e5ff" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-51e5ff?style=flat&labelColor=0a1116" alt="MIT"></a>
+  <img src="https://img.shields.io/badge/macOS-13%2B-51e5ff?style=flat&labelColor=0a1116" alt="macOS 13+">
+</p>
+
+<p align="center"><sub>Free and open source. If it saves you reaching for your phone, a ⭐ helps others find it.</sub></p>
+
+<p align="center">
   <img src="docs/img/panel-anc.png" width="360" alt="The SoundcoreBridge menu bar panel">
 </p>
 
@@ -27,6 +36,17 @@ SoundcoreBridge puts those controls in your menu bar instead.
 - **A command line tool**, if you want to script it
 
 ## Install
+
+| Platform | Status |
+|---|---|
+| **macOS 13+** | Available now |
+| Windows | Coming soon |
+| Linux | Coming soon |
+
+The protocol layer is platform-independent — only the Bluetooth transport is
+macOS-specific, so the other two are a port rather than a rewrite.
+
+### macOS
 
 ```sh
 brew tap mervin008/tap
@@ -61,12 +81,16 @@ soundcorectl eq "6,4,2,0,0,-2,-4,-6"
 | Device | Status |
 |---|---|
 | Soundcore Space 2 | Full control |
-| Other Soundcore models | Battery and firmware only |
+| Space One · Q45 · Life series | In progress |
+| Any other Soundcore model | Detected — battery and firmware only |
 
-Only the Space 2 has been tested against real hardware, so it's the only one
-that gets write access. Other models are read-only until someone can verify
-them — if you have one, [open an issue](https://github.com/mervin008/soundcorebridge/issues)
-and we can work out what it needs.
+More models are being added. A device gets write access once its behaviour has
+been confirmed on real hardware; until then it stays read-only rather than
+guessing, because wrong offsets written to headphones are how they end up in
+odd states.
+
+Got one that isn't listed? [Open an issue](https://github.com/mervin008/soundcorebridge/issues/new/choose)
+— it's mostly a matter of confirming what it does.
 
 ## How it works
 
@@ -91,6 +115,25 @@ hardware rather than assumed.
 
 Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
----
+## Support
 
-<sub>Not affiliated with Anker or Soundcore. MIT licensed.</sub>
+Free and open source, and it stays that way. If it's useful:
+
+- ⭐ [Star the repo](https://github.com/mervin008/soundcorebridge) — it's how people find it
+- 🐛 [Report a bug or request a device](https://github.com/mervin008/soundcorebridge/issues/new/choose)
+- 💛 [Sponsor](https://github.com/sponsors/mervin008) if you'd like to support the work
+
+## Disclaimer
+
+**SoundcoreBridge is not affiliated with, endorsed by, or connected to Anker
+Innovations or Soundcore.** "Soundcore" and "Anker" are trademarks of their
+respective owners and are used here only to describe compatibility.
+
+This app talks to your headphones over a protocol that was reverse engineered
+by observing traffic to hardware the author owns — lawful interoperability work.
+Firmware-update channels are deliberately blocked and no firmware is modified.
+
+It is nevertheless an undocumented protocol on hardware you paid for. **No
+warranty is given, express or implied. Use at your own risk.**
+
+Licensed under [MIT](LICENSE).
