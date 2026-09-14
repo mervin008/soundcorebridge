@@ -19,6 +19,7 @@
   --r:14px;
 }
 *{box-sizing:border-box}
+html,body{overflow-x:hidden}
 html{-webkit-text-size-adjust:100%}
 body{
   margin:0;background:var(--ink);color:var(--text);
@@ -28,6 +29,9 @@ body{
   background-repeat:no-repeat;
 }
 a{color:var(--signal)}
+a:focus-visible,.btn:focus-visible{
+  outline:2px solid var(--signal);outline-offset:3px;border-radius:6px;
+}
 .wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
 code,pre{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
 
@@ -76,7 +80,8 @@ p{margin:0 0 14px}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 19px}
 .card p{color:var(--muted);font-size:14.5px;margin:0}
-table{width:100%;border-collapse:collapse;font-size:15px}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:15px;min-width:420px}
 th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
 th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.07em}
 td.ok{color:var(--mint)}
@@ -89,6 +94,9 @@ ul.credits a{text-decoration:none;font-weight:600;color:var(--text)}
 ul.credits a:hover{color:var(--signal)}
 footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
        color:var(--muted);font-size:13.5px}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
 @media (max-width:640px){
   .pills,.chips{grid-template-columns:repeat(3,1fr)}
   .btn{width:100%;text-align:center}
@@ -163,11 +171,13 @@ footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
 </div>
 
 <h2>Supported devices</h2>
+<div class="tablewrap">
 <table>
   <tr><th>Device</th><th>Model</th><th>Status</th></tr>
   <tr><td>Soundcore Space 2</td><td>D1402</td><td class="ok">Verified &mdash; full control</td></tr>
   <tr><td>Other Soundcore models</td><td>&mdash;</td><td>Detected &mdash; read-only</td></tr>
 </table>
+</div>
 <p class="c" style="font-size:14.5px;margin-top:12px">Unknown models stay read-only on purpose. Field offsets differ between models, and writing guessed offsets to unverified hardware is how devices end up in strange states.</p>
 
 <h2>Install</h2>

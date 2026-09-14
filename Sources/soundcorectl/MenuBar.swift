@@ -13,6 +13,30 @@ func applog(_ msg: String) {
     }
 }
 
+
+/// Pointer feedback for the popover's controls. macOS users expect a control to
+/// acknowledge the cursor; none of these did. Honours the system's reduce-motion
+/// setting rather than animating regardless.
+private struct HoverHighlight: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovering = false
+    var active: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .brightness(hovering && !active ? 0.06 : 0)
+            .scaleEffect(hovering ? 1.015 : 1.0)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: hovering)
+            .onHover { hovering = $0 }
+    }
+}
+
+extension View {
+    func hoverHighlight(active: Bool = false) -> some View {
+        modifier(HoverHighlight(active: active))
+    }
+}
+
 // MARK: - Battery presentation
 
 func batterySymbol(percent: Int) -> String {
@@ -428,6 +452,8 @@ struct MenuContent: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(active ? .white : .primary)
+                            .hoverHighlight(active: active)
+                            .help("Noise cancelling strength \(level) of 5")
                         }
                     }
                 }
@@ -458,6 +484,8 @@ struct MenuContent: View {
             .foregroundStyle(active ? Color.white : Color.primary)
         }
         .buttonStyle(.plain)
+        .hoverHighlight(active: active)
+        .help(title)
     }
 
     // MARK: - Equaliser Card
