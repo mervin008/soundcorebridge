@@ -1,0 +1,21 @@
+name: Device support
+description: Ask for another Soundcore model to be supported
+labels: [device-support]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Which headphones?
+      placeholder: e.g. Soundcore Space One Pro
+    validations: {required: true}
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `soundcorectl status` and `soundcorectl sdp`
+      render: text
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help test?
+      options:
+        - label: I have this device and can run captures against it

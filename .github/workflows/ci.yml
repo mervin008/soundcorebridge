@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build and self-test
+    # macos-14 ships Swift 5.10, and Package.swift declares tools version 6.0.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: swift --version
+      - name: Build
+        run: swift build -c release
+      # The self-test runs entirely offline: frame codec, stream parser,
+      # EQ preset table and device profiles. No headset required.
+      - name: Self-test
+        run: swift run -c release soundcorectl selftest

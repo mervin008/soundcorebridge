@@ -3,304 +3,202 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SoundcoreBridge — Soundcore control for macOS</title>
-<meta name="description" content="Native macOS menu bar app and CLI for Soundcore headphones, built on a reverse-engineered Bluetooth protocol. Every byte verified against real hardware.">
+<title>SoundcoreBridge — control your Soundcore headphones from your Mac</title>
+<meta name="description" content="A small macOS menu bar app for Soundcore headphones. Change noise cancelling and the equaliser without picking up your phone.">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="icon.png">
 <meta property="og:title" content="SoundcoreBridge">
-<meta property="og:description" content="Soundcore headphone control for macOS. Every byte verified against real hardware.">
+<meta property="og:description" content="Control your Soundcore headphones from your Mac.">
 <meta property="og:image" content="img/panel-anc.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#07090d; --ink:#0d1117; --line:#1d2531; --line-2:#2b3646;
-  --text:#e6eaf0; --muted:#93a0b4; --faint:#5d6879;
-  --signal:#4a9eff; --mint:#26d0a6; --amber:#f0a84a; --slate:#a6b0c2;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --bg:#0c0f15; --card:#141922; --line:#232b38; --line-2:#333d4e;
+  --text:#eef1f6; --muted:#9aa5b5; --faint:#6b7685;
+  --accent:#4a9eff; --mint:#26d0a6;
+  --ease:cubic-bezier(.2,.7,.2,1);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 html,body{overflow-x:hidden}
 body{
-  margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--sans);
+  margin:0;background:var(--bg);color:var(--text);
+  font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:72px 72px;background-position:-1px -1px;
 }
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(120% 70% at 50% 0%,transparent 40%,var(--bg) 100%)}
-.wrap{max-width:1000px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
-a{color:var(--signal);text-decoration:none}
+a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline;text-underline-offset:3px}
-:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
-.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+.wrap{max-width:720px;margin:0 auto;padding:0 22px}
 
-/* header */
-nav{border-bottom:1px solid var(--line);background:rgba(7,9,13,.86);position:sticky;top:0;z-index:40;
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-nav .wrap{display:flex;align-items:center;gap:16px;height:56px}
-.brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:600;letter-spacing:-.01em}
-.brand:hover{text-decoration:none}
-.brand img{width:24px;height:24px}
-nav .spacer{margin-left:auto}
-nav a.nl{color:var(--muted);font-size:13px;font-family:var(--mono)}
-nav a.nl:hover{color:var(--text);text-decoration:none}
+header{text-align:center;padding:76px 0 8px}
+header img.logo{width:84px;height:84px}
+h1{font-size:clamp(32px,5.2vw,44px);letter-spacing:-.028em;line-height:1.1;margin:20px 0 12px;font-weight:650}
+.tagline{color:var(--muted);font-size:19px;margin:0 auto 28px;max-width:26em}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:600;font-size:15.5px;
+     background:var(--accent);color:#06090f;transition:.18s var(--ease)}
+.btn:hover{filter:brightness(1.08);text-decoration:none}
+.btn.alt{background:transparent;color:var(--text);border:1px solid var(--line-2)}
+.btn.alt:hover{border-color:var(--muted)}
 
-/* hero */
-.hero{border-bottom:1px solid var(--line);padding:76px 0 64px}
-.hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
-.stamp{font-family:var(--mono);font-size:11.5px;color:var(--mint);border:1px solid var(--line-2);
-       padding:4px 9px;display:inline-block;letter-spacing:.06em}
-h1{font-size:clamp(33px,4.6vw,50px);line-height:1.06;letter-spacing:-.03em;margin:18px 0 16px;font-weight:600}
-.sub{color:var(--muted);font-size:17px;max-width:32em;margin:0 0 26px}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{display:inline-block;padding:10px 18px;font-family:var(--mono);font-size:13.5px;font-weight:500;
-     border:1px solid var(--signal);background:var(--signal);color:#05080e;cursor:pointer;
-     transition:background .15s linear,color .15s linear}
-.btn:hover{background:transparent;color:var(--signal);text-decoration:none}
-.btn.alt{background:transparent;color:var(--text);border-color:var(--line-2)}
-.btn.alt:hover{border-color:var(--text);color:var(--text)}
+.shot{margin:44px auto 0;max-width:392px}
+.shot img{width:100%;display:block;border-radius:16px;border:1px solid var(--line);
+          box-shadow:0 30px 70px -30px rgba(0,0,0,.85)}
 
-/* packet diagram — the actual bytes that switch ANC on */
-.packet{border:1px solid var(--line);background:var(--ink);padding:20px 18px 14px}
-.packet .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:14px;letter-spacing:.05em}
-.bytes{display:flex;flex-wrap:wrap;gap:0 14px;font-family:var(--mono)}
-.g{display:flex;flex-direction:column;gap:5px;padding-bottom:4px}
-.g b{font-size:15px;font-weight:500;letter-spacing:.06em}
-.g u{font-size:10px;text-decoration:none;color:var(--faint);letter-spacing:.04em;
-     border-top:1px solid currentColor;padding-top:4px;display:block}
-.g-magic b{color:var(--slate)}   .g-magic u{color:var(--faint)}
-.g-cmd b{color:var(--signal)}    .g-cmd u{color:var(--signal)}
-.g-payload b{color:var(--mint)}  .g-payload u{color:var(--mint)}
-.g-sum b{color:var(--amber)}     .g-sum u{color:var(--amber)}
-.g-seq b,.g-len b{color:var(--muted)}
-.packet .note{font-size:13px;color:var(--muted);margin:16px 0 0;font-family:var(--sans)}
+section{padding:56px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+h2{font-size:25px;letter-spacing:-.02em;margin:0 0 14px;font-weight:650}
+p{margin:0 0 16px;color:var(--muted)}
+p.tight{margin-bottom:0}
+strong{color:var(--text);font-weight:600}
 
-/* sections */
-section{border-bottom:1px solid var(--line);padding:68px 0}
-.head{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
-.num{font-family:var(--mono);font-size:12px;color:var(--signal);letter-spacing:.08em}
-h2{font-size:clamp(23px,3vw,30px);letter-spacing:-.022em;margin:0;font-weight:600}
-.lead{color:var(--muted);max-width:46em;margin:0 0 30px}
+ul.feat{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+ul.feat li{display:flex;gap:13px;align-items:flex-start}
+ul.feat svg{flex:none;margin-top:3px;color:var(--accent)}
+ul.feat b{display:block;color:var(--text);font-weight:600;font-size:16.5px}
+ul.feat span{color:var(--muted);font-size:15.5px}
 
-/* feature list — plain rows, hard rules, no cards */
-.rows{border-top:1px solid var(--line)}
-.r{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:20px 0;border-bottom:1px solid var(--line)}
-.r h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
-.r p{margin:0;color:var(--muted);font-size:15px}
-.r .k{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:5px;letter-spacing:.04em}
-
-/* byte map */
-.bytemap{border:1px solid var(--line);background:var(--ink);padding:18px}
-.bytemap .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(26px,1fr));gap:3px;font-family:var(--mono)}
-.bytemap i{font-style:normal;font-size:11px;text-align:center;padding:5px 0;color:var(--faint);
-           background:rgba(255,255,255,.028);border:1px solid transparent;cursor:default}
-.bytemap i:hover{border-color:var(--line-2);color:var(--text)}
-.f-bat{color:var(--mint)!important;background:rgba(38,208,166,.14)!important}
-.f-fw,.f-model,.f-serial{color:var(--slate)!important;background:rgba(166,176,194,.10)!important}
-.f-eqp,.f-eq{color:var(--signal)!important;background:rgba(74,158,255,.14)!important}
-.f-anc,.f-lvl{color:var(--amber)!important;background:rgba(240,168,74,.14)!important}
-.f-host{color:#c98bff!important;background:rgba(201,139,255,.14)!important}
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-.legend span{display:flex;align-items:center;gap:6px}
-.sw{width:10px;height:10px;display:inline-block;border:1px solid currentColor}
-
-/* shots */
-.shots{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-.shots figure{margin:0;border:1px solid var(--line);background:var(--ink);padding:14px}
-.shots img{width:100%;display:block;border:1px solid var(--line)}
-.shots figcaption{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:11px;letter-spacing:.04em}
-
-/* code */
-.codewrap{position:relative}
-pre{background:var(--ink);border:1px solid var(--line);padding:18px;overflow-x:auto;
-    font-family:var(--mono);font-size:13px;line-height:1.85;margin:0}
-.copy{position:absolute;top:10px;right:10px;background:transparent;border:1px solid var(--line-2);
-      color:var(--muted);padding:5px 10px;font-family:var(--mono);font-size:11px;cursor:pointer}
-.copy:hover{color:var(--text);border-color:var(--text)}
+pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 19px;
+    overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;
+    line-height:1.8;margin:0 0 14px;color:var(--text)}
 .c{color:var(--faint)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.codewrap{position:relative}
+.copy{position:absolute;top:11px;right:11px;background:var(--bg);border:1px solid var(--line-2);
+      color:var(--muted);border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;
+      transition:.18s var(--ease)}
+.copy:hover{color:var(--text);border-color:var(--muted)}
 
-/* table */
-.tablewrap{overflow-x:auto;border:1px solid var(--line)}
-table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:480px}
-th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:15.5px;min-width:360px}
+th,td{text-align:left;padding:13px 17px;border-bottom:1px solid var(--line)}
 tr:last-child td{border-bottom:0}
-th{font-family:var(--mono);color:var(--faint);font-weight:500;font-size:11px;
-   text-transform:uppercase;letter-spacing:.09em}
-td.ok{color:var(--mint)}
+th{color:var(--faint);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+.ok{color:var(--mint)}
 
-/* credits */
-.credits{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
-.credits li{padding:18px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:15px}
-.credits a{color:var(--text);font-weight:600}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gallery figure{margin:0}
+.gallery img{width:100%;display:block;border-radius:12px;border:1px solid var(--line)}
+.gallery figcaption{color:var(--faint);font-size:13.5px;margin-top:9px;text-align:center}
 
-footer{padding:32px 0 60px;color:var(--faint);font-size:13px}
+ul.credits{list-style:none;padding:0;margin:0;display:grid;gap:13px}
+ul.credits li{color:var(--muted);font-size:15.5px}
+ul.credits a{font-weight:600}
+
+footer{border-top:1px solid var(--line);padding:28px 0 56px;color:var(--faint);font-size:14px;text-align:center}
 
 .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);opacity:0;
-       background:var(--ink);border:1px solid var(--line-2);color:var(--text);
-       padding:9px 16px;font-family:var(--mono);font-size:12.5px;pointer-events:none;
-       transition:.2s linear;z-index:99}
+       background:var(--card);border:1px solid var(--line-2);color:var(--text);
+       padding:10px 17px;border-radius:10px;font-size:14px;pointer-events:none;
+       transition:.22s var(--ease);z-index:99}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
-@media (max-width:880px){
-  .hero .wrap,.shots,.two{grid-template-columns:1fr}
-  .r{grid-template-columns:1fr;gap:6px}
-  nav a.nl{display:none}
-  section{padding:48px 0}
-  body{background-size:48px 48px}
+@media (max-width:640px){
+  .gallery{grid-template-columns:1fr}
+  header{padding:54px 0 4px}
+  section{padding:44px 0}
+  .btn{width:100%;text-align:center}
 }
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;
-                       scroll-behavior:auto!important}
+  *,*::before,*::after{transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<nav>
-  <div class="wrap">
-    <a class="brand" href="#top"><img src="icon.png" alt="">SoundcoreBridge</a>
-    <span class="spacer"></span>
-    <a class="nl" href="#protocol">protocol</a>
-    <a class="nl" href="#install">install</a>
-    <a class="nl" href="https://github.com/mervin008/soundcorebridge">source</a>
+<header>
+  <img class="logo" src="icon.png" alt="">
+  <h1>Control your Soundcore headphones from your Mac</h1>
+  <p class="tagline">A small menu bar app. No phone required.</p>
+  <div class="row">
+    <a class="btn" href="#install">Install</a>
+    <a class="btn alt" href="https://github.com/mervin008/soundcorebridge">View on GitHub</a>
   </div>
-</nav>
-
-<div class="hero" id="top">
-  <div class="wrap">
-    <div>
-      <span class="stamp">VERIFIED ON D1402 · FW 01.59</span>
-      <h1>Soundcore headphones,<br>controlled from macOS</h1>
-      <p class="sub">Anker ships the app for phones only. This talks to the headset directly over its own Bluetooth protocol — every byte worked out by watching real traffic, and checked by reading the value back off the hardware.</p>
-      <div class="row">
-        <a class="btn" href="#install">Install</a>
-        <a class="btn alt" href="https://github.com/mervin008/soundcorebridge">Source</a>
-      </div>
-    </div>
-
-    <div class="packet">
-      <div class="cap">// the bytes that switch noise cancelling on</div>
-      <div class="bytes"><span class="g g-magic"><b>08 EE 00 00</b><u>magic</u></span><span class="g g-seq"><b>00</b><u>seq</u></span><span class="g g-cmd"><b>06 81</b><u>cmd</u></span><span class="g g-len"><b>10 00</b><u>len</u></span><span class="g g-payload"><b>00 5F 02 00 00 01</b><u>payload</u></span><span class="g g-sum"><b>EF</b><u>sum</u></span></div>
-      <p class="note">Sixteen bytes on RFCOMM channel 30. The headset ignores every one of them until a handshake runs first — which took a day to discover.</p>
-    </div>
+  <div class="shot">
+    <img src="img/panel-anc.png" width="410" height="473"
+         alt="The SoundcoreBridge panel showing battery, noise control with strength level, and the equaliser">
   </div>
-</div>
+</header>
 
-<section id="features">
-  <div class="wrap">
-    <div class="head"><span class="num">§01</span><h2>What it does</h2></div>
-    <p class="lead">Everything the phone app does, minus the phone.</p>
-    <div class="rows">
-      <div class="r"><div><h3>Noise control</h3><div class="k">06:81</div></div>
-        <p>Noise Cancelling, Transparency and Normal, plus ANC strength 1–5 — which the official app reads back incorrectly, showing its own cached value instead of the headset's.</p></div>
-      <div class="r"><div><h3>Equaliser</h3><div class="k">03:87 · 53-byte frame</div></div>
-        <p>All 22 factory presets and a custom 8-band curve at ±6 dB, including the DSP compensation tail the firmware expects.</p></div>
-      <div class="r"><div><h3>Device state</h3><div class="k">01:01 · 103 bytes</div></div>
-        <p>Battery, firmware, model and multipoint host count, polled live and decoded through a per-model profile.</p></div>
-      <div class="r"><div><h3>Command line</h3><div class="k">soundcorectl</div></div>
-        <p>Scriptable control, plus the probe, sweep and diff tools used to map the protocol in the first place.</p></div>
-      <div class="r"><div><h3>Safe by default</h3><div class="k">ch 12 · ch 13 blocked</div></div>
-        <p>Firmware-flashing channels are refused by service identity, so the guard holds on every device rather than only the one it was written on.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="protocol">
-  <div class="wrap">
-    <div class="head"><span class="num">§02</span><h2>The state blob</h2></div>
-    <p class="lead">One command returns 103 bytes describing the whole headset. These are the offsets that have been confirmed — hover any cell. Everything still grey is unmapped.</p>
-    <div class="bytemap">
-      <div class="grid"><i class="f-bat" title="byte[0] = 0x04 — battery">04</i><i class="" title="byte[1] = 0x00">00</i><i class="f-fw" title="byte[2] = 0x30 — firmware">30</i><i class="f-fw" title="byte[3] = 0x31 — firmware">31</i><i class="f-fw" title="byte[4] = 0x2E — firmware">2E</i><i class="f-fw" title="byte[5] = 0x35 — firmware">35</i><i class="f-fw" title="byte[6] = 0x39 — firmware">39</i><i class="f-model" title="byte[7] = 0x31 — model">31</i><i class="f-model" title="byte[8] = 0x34 — model">34</i><i class="f-model" title="byte[9] = 0x30 — model">30</i><i class="f-model" title="byte[10] = 0x32 — model">32</i><i class="f-serial" title="byte[11] = 0x38 — serial">38</i><i class="f-serial" title="byte[12] = 0x34 — serial">34</i><i class="f-serial" title="byte[13] = 0x39 — serial">39</i><i class="f-serial" title="byte[14] = 0x44 — serial">44</i><i class="f-serial" title="byte[15] = 0x34 — serial">34</i><i class="f-serial" title="byte[16] = 0x42 — serial">42</i><i class="f-serial" title="byte[17] = 0x42 — serial">42</i><i class="f-serial" title="byte[18] = 0x30 — serial">30</i><i class="f-serial" title="byte[19] = 0x37 — serial">37</i><i class="f-serial" title="byte[20] = 0x39 — serial">39</i><i class="f-serial" title="byte[21] = 0x38 — serial">38</i><i class="f-serial" title="byte[22] = 0x46 — serial">46</i><i class="f-eqp" title="byte[23] = 0x01 — EQ preset">01</i><i class="" title="byte[24] = 0x00">00</i><i class="f-eq" title="byte[25] = 0xA0 — EQ bands">A0</i><i class="f-eq" title="byte[26] = 0x82 — EQ bands">82</i><i class="f-eq" title="byte[27] = 0x8C — EQ bands">8C</i><i class="f-eq" title="byte[28] = 0x8C — EQ bands">8C</i><i class="f-eq" title="byte[29] = 0xA0 — EQ bands">A0</i><i class="f-eq" title="byte[30] = 0xA0 — EQ bands">A0</i><i class="f-eq" title="byte[31] = 0xA0 — EQ bands">A0</i><i class="f-eq" title="byte[32] = 0x8C — EQ bands">8C</i><i class="" title="byte[33] = 0x00">00</i><i class="" title="byte[34] = 0x00">00</i><i class="" title="byte[35] = 0x1E">1E</i><i class="" title="byte[36] = 0xFF">FF</i><i class="" title="byte[37] = 0x00">00</i><i class="" title="byte[38] = 0xFF">FF</i><i class="" title="byte[39] = 0xFF">FF</i><i class="" title="byte[40] = 0xFF">FF</i><i class="" title="byte[41] = 0xFF">FF</i><i class="" title="byte[42] = 0xFF">FF</i><i class="" title="byte[43] = 0xFF">FF</i><i class="" title="byte[44] = 0xFF">FF</i><i class="" title="byte[45] = 0xFF">FF</i><i class="" title="byte[46] = 0x00">00</i><i class="" title="byte[47] = 0x00">00</i><i class="" title="byte[48] = 0x00">00</i><i class="" title="byte[49] = 0x00">00</i><i class="" title="byte[50] = 0x00">00</i><i class="" title="byte[51] = 0x00">00</i><i class="" title="byte[52] = 0x00">00</i><i class="" title="byte[53] = 0xFF">FF</i><i class="" title="byte[54] = 0xFF">FF</i><i class="" title="byte[55] = 0xFF">FF</i><i class="" title="byte[56] = 0xFF">FF</i><i class="" title="byte[57] = 0xFF">FF</i><i class="" title="byte[58] = 0xFF">FF</i><i class="" title="byte[59] = 0xFF">FF</i><i class="" title="byte[60] = 0xFF">FF</i><i class="" title="byte[61] = 0x00">00</i><i class="" title="byte[62] = 0x00">00</i><i class="" title="byte[63] = 0x00">00</i><i class="" title="byte[64] = 0x00">00</i><i class="" title="byte[65] = 0x06">06</i><i class="" title="byte[66] = 0x04">04</i><i class="" title="byte[67] = 0x07">07</i><i class="" title="byte[68] = 0xFF">FF</i><i class="" title="byte[69] = 0x07">07</i><i class="" title="byte[70] = 0x05">05</i><i class="f-anc" title="byte[71] = 0x00 — ANC mode">00</i><i class="f-lvl" title="byte[72] = 0x5F — ANC level">5F</i><i class="" title="byte[73] = 0xFF">FF</i><i class="" title="byte[74] = 0x00">00</i><i class="" title="byte[75] = 0x00">00</i><i class="" title="byte[76] = 0x01">01</i><i class="" title="byte[77] = 0x32">32</i><i class="" title="byte[78] = 0x00">00</i><i class="" title="byte[79] = 0x00">00</i><i class="" title="byte[80] = 0x00">00</i><i class="" title="byte[81] = 0x01">01</i><i class="" title="byte[82] = 0x01">01</i><i class="" title="byte[83] = 0x00">00</i><i class="" title="byte[84] = 0x01">01</i><i class="" title="byte[85] = 0x01">01</i><i class="" title="byte[86] = 0x00">00</i><i class="" title="byte[87] = 0x00">00</i><i class="" title="byte[88] = 0x5A">5A</i><i class="" title="byte[89] = 0x00">00</i><i class="" title="byte[90] = 0x00">00</i><i class="f-host" title="byte[91] = 0x01 — hosts">01</i><i class="" title="byte[92] = 0x00">00</i><i class="" title="byte[93] = 0x01">01</i><i class="" title="byte[94] = 0x00">00</i><i class="" title="byte[95] = 0x00">00</i><i class="" title="byte[96] = 0x00">00</i><i class="" title="byte[97] = 0x00">00</i><i class="" title="byte[98] = 0xFF">FF</i><i class="" title="byte[99] = 0xFF">FF</i><i class="" title="byte[100] = 0xFF">FF</i><i class="" title="byte[101] = 0xFF">FF</i><i class="" title="byte[102] = 0xFF">FF</i></div>
-      <div class="legend">
-        <span><i class="sw" style="color:var(--mint)"></i>battery</span>
-        <span><i class="sw" style="color:var(--slate)"></i>firmware · model · serial</span>
-        <span><i class="sw" style="color:var(--signal)"></i>EQ preset &amp; bands</span>
-        <span><i class="sw" style="color:var(--amber)"></i>ANC mode &amp; level</span>
-        <span><i class="sw" style="color:#c98bff"></i>connected hosts</span>
-      </div>
-    </div>
-  </div>
+<section>
+  <h2>The problem</h2>
+  <p>Your headphones pair with your Mac and play audio perfectly well. But the moment you want to change noise cancelling or the equaliser, you have to pick up your phone and open the Soundcore app — because Anker only ships it for Android and iOS.</p>
+  <p class="tight">SoundcoreBridge puts those controls in your menu bar instead.</p>
 </section>
 
 <section>
-  <div class="wrap">
-    <div class="head"><span class="num">§03</span><h2>The app</h2></div>
-    <p class="lead">Rendered straight from the shipping SwiftUI view, so these cannot drift from what you actually get.</p>
-    <div class="shots">
-      <figure><img src="img/panel-anc.png" alt="The panel in Noise Cancelling mode, accent blue, showing strength level 4 and the Rock equaliser curve">
-        <figcaption>noise cancelling · strength 4 · rock</figcaption></figure>
-      <figure><img src="img/panel-ambient.png" alt="The same panel in Transparency mode, where the accent shifts to teal">
-        <figcaption>transparency · the tint follows the mode</figcaption></figure>
-    </div>
+  <h2>What you get</h2>
+  <ul class="feat">
+    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 18 0"/><rect x="2" y="12" width="5" height="8" rx="2"/><rect x="17" y="12" width="5" height="8" rx="2"/></svg>
+      <div><b>Noise cancelling</b><span>Off, transparency, or on with strength 1 to 5.</span></div></li>
+    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14c3-6 5 4 8-2s5 4 8-2"/></svg>
+      <div><b>Equaliser</b><span>All 22 presets, plus your own 8-band curve.</span></div></li>
+    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="17" height="10" rx="3"/><path d="M22 11v2"/></svg>
+      <div><b>Battery and firmware</b><span>At a glance, without opening anything.</span></div></li>
+    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>
+      <div><b>A command line tool</b><span>If you'd rather script it.</span></div></li>
+  </ul>
+</section>
+
+<section>
+  <h2>A look at it</h2>
+  <div class="gallery">
+    <figure><img src="img/panel-anc.png" alt="The panel in noise cancelling mode, accent blue">
+      <figcaption>Noise cancelling</figcaption></figure>
+    <figure><img src="img/panel-ambient.png" alt="The panel in transparency mode, accent teal">
+      <figcaption>Transparency — the colour follows the mode</figcaption></figure>
   </div>
 </section>
 
 <section id="install">
-  <div class="wrap">
-    <div class="head"><span class="num">§04</span><h2>Install</h2></div>
-    <p class="lead">Homebrew refuses untrusted third-party casks, so the middle line is required. The app is ad-hoc signed rather than notarised, which is what <code class="mono">--no-quarantine</code> handles. macOS 13 or later.</p>
-    <div class="codewrap">
-      <button class="copy" id="copyBtn" type="button">copy</button>
+  <h2>Install</h2>
+  <div class="codewrap">
+    <button class="copy" id="copyBtn" type="button">Copy</button>
 <pre id="cmd"><span class="c">$</span> brew tap mervin008/tap
 <span class="c">$</span> brew trust mervin008/tap
 <span class="c">$</span> brew install --cask --no-quarantine mervin008/tap/soundcorebridge</pre>
-    </div>
-    <div class="two">
-      <div class="codewrap"><pre><span class="c"># build it yourself</span>
-<span class="c">$</span> git clone https://github.com/mervin008/soundcorebridge
-<span class="c">$</span> cd soundcorebridge &amp;&amp; ./make-app.sh</pre></div>
-      <div class="codewrap"><pre><span class="c"># or drive it from a script</span>
-<span class="c">$</span> soundcorectl anc nc --level 5
-<span class="c">$</span> soundcorectl eq "6,4,2,0,0,-2,-4,-6"</pre></div>
-    </div>
   </div>
-</section>
-
-<section id="devices">
-  <div class="wrap">
-    <div class="head"><span class="num">§05</span><h2>Compatibility</h2></div>
-    <p class="lead">Unknown models stay read-only on purpose. Field offsets differ between models, and writing guessed offsets to unverified hardware is how devices end up in strange states.</p>
-    <div class="tablewrap">
-      <table>
-        <tr><th>Device</th><th>Model</th><th>Status</th></tr>
-        <tr><td>Soundcore Space 2</td><td class="mono">D1402</td><td class="ok">Verified — full control</td></tr>
-        <tr><td>Other Soundcore models</td><td class="mono">—</td><td>Detected — battery &amp; firmware, read-only</td></tr>
-      </table>
-    </div>
-  </div>
+  <p>Homebrew asks you to trust third-party casks, hence the middle line. The app isn't notarised by Apple, which is what <code>--no-quarantine</code> takes care of. Needs macOS 13 or later.</p>
+  <p class="tight">Prefer a download? Grab the zip from <a href="https://github.com/mervin008/soundcorebridge/releases/latest">releases</a>.</p>
 </section>
 
 <section>
-  <div class="wrap">
-    <div class="head"><span class="num">§06</span><h2>Credits</h2></div>
-    <ul class="credits">
-      <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — the model for what a native desktop bridge should be, and the project that proved macOS RFCOMM control was possible at all</li>
-      <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation; its capability-driven device model shaped the profile layer here</li>
-      <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop Soundcore client and protocol reference</li>
-    </ul>
+  <h2>Supported headphones</h2>
+  <div class="tablewrap">
+    <table>
+      <tr><th>Device</th><th>Status</th></tr>
+      <tr><td>Soundcore Space 2</td><td class="ok">Full control</td></tr>
+      <tr><td>Other Soundcore models</td><td>Battery and firmware only</td></tr>
+    </table>
   </div>
+  <p style="margin-top:16px" class="tight">Only the Space 2 has been tested against real hardware, so it's the only one that gets write access. If you have another model, <a href="https://github.com/mervin008/soundcorebridge/issues">open an issue</a> and we can work out what it needs.</p>
 </section>
 
-<footer>
-  <div class="wrap">
-    Unofficial project, not affiliated with Anker or Soundcore. Firmware-update channels are
-    deliberately blocked, but this talks to your headphones over an undocumented protocol — no warranty.
-    <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT</a>.
-  </div>
-</footer>
+<section>
+  <h2>How it works</h2>
+  <p class="tight">The app speaks the same Bluetooth protocol the phone app uses, worked out by watching real traffic. If you're curious, the details are in the <a href="protocol-map.md">protocol map</a>.</p>
+</section>
 
-<div class="toast" id="toast">copied</div>
+<section>
+  <h2>Credits</h2>
+  <ul class="credits">
+    <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — showed that this was possible on macOS at all</li>
+    <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation</li>
+    <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop client and protocol reference</li>
+  </ul>
+</section>
+
+</div>
+<footer>Not affiliated with Anker or Soundcore. <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT licensed</a>.</footer>
+
+<div class="toast" id="toast">Copied</div>
 <script>
 const toast=document.getElementById('toast');
 document.getElementById('copyBtn').addEventListener('click',async()=>{
   const t=document.getElementById('cmd').innerText.replace(/^\$ /gm,'');
-  try{await navigator.clipboard.writeText(t);toast.textContent='copied';}
-  catch{toast.textContent='press ⌘C';}
+  try{await navigator.clipboard.writeText(t);toast.textContent='Copied';}
+  catch{toast.textContent='Press ⌘C to copy';}
   toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1500);
 });
 </script>
