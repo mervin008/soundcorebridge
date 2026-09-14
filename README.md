@@ -41,14 +41,26 @@ Unknown models stay read-only on purpose: field offsets differ between models,
 and writing guessed offsets to unverified hardware is how devices end up in
 strange states.
 
-## 📥 Build
+## 📥 Install
 
-Requires macOS 13+ and Swift 6 (Xcode or Command Line Tools).
+```sh
+brew tap mervin008/tap
+brew trust mervin008/tap
+brew install --cask --no-quarantine mervin008/tap/soundcorebridge
+```
+
+Homebrew requires third-party casks to be trusted explicitly, hence the middle
+step. The app is ad-hoc signed rather than notarised, which is what
+`--no-quarantine` handles.
+
+Or grab the zip from [releases](https://github.com/mervin008/soundcorebridge/releases/latest).
+Requires macOS 13 or later.
+
+### Build from source
 
 ```sh
 git clone https://github.com/mervin008/soundcorebridge
-cd soundcorebridge
-./make-app.sh
+cd soundcorebridge && ./make-app.sh
 open build/SoundcoreBridge.app
 ```
 
