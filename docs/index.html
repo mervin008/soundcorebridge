@@ -9,213 +9,338 @@
 <link rel="icon" href="icon.png">
 <meta property="og:title" content="SoundcoreBridge">
 <meta property="og:description" content="Native macOS control for Soundcore headphones.">
-<meta property="og:image" content="icon.png">
+<meta property="og:image" content="img/panel-anc.png">
 <style>
 :root{
-  --signal:#4a9eff; --signal-deep:#2468d6;
-  --ink:#0b0f16; --panel:#141a25; --panel-2:#101620; --line:#232c3b;
-  --text:#e8edf5; --muted:#8d9bb1;
-  --mint:#26d0a6; --slate:#a6b0c2;
-  --r:14px;
+  --bg:#0a0c11; --panel:rgba(255,255,255,.038); --panel-2:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.14);
+  --text:#f2f3f5; --muted:#98a0ad; --faint:#646b78;
+  --accent:#4a9eff; --accent2:#7db4ff; --glow:rgba(74,158,255,.35);
+  --mint:#26d0a6;
+  --ease:cubic-bezier(.2,.7,.2,1);
 }
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{overflow-x:hidden}
-html{-webkit-text-size-adjust:100%}
 body{
-  margin:0;background:var(--ink);color:var(--text);
-  font:17px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  margin:0;background:var(--bg);color:var(--text);
+  font:16.5px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font-feature-settings:"ss01","cv01";
   -webkit-font-smoothing:antialiased;
-  background-image:radial-gradient(900px 480px at 50% -220px,rgba(74,158,255,.16),transparent 70%);
-  background-repeat:no-repeat;
 }
-a{color:var(--signal)}
-a:focus-visible,.btn:focus-visible{
-  outline:2px solid var(--signal);outline-offset:3px;border-radius:6px;
-}
-.wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
-code,pre{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace}
+a{color:var(--accent);text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono","Cascadia Code",Menlo,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;transition:.25s var(--ease)}
+nav.scrolled{background:rgba(10,12,17,.72);backdrop-filter:blur(16px) saturate(1.4);
+             -webkit-backdrop-filter:blur(16px) saturate(1.4);border-bottom-color:var(--line)}
+nav .wrap{display:flex;align-items:center;gap:14px;height:62px}
+.brand{display:flex;align-items:center;gap:9px;color:var(--text);font-weight:650;letter-spacing:-.01em}
+.brand img{width:26px;height:26px;border-radius:7px}
+nav .links{display:flex;gap:22px;margin-left:18px}
+nav .links a{color:var(--muted);font-size:14.5px}
+nav .links a:hover{color:var(--text)}
+nav .right{margin-left:auto;display:flex;gap:9px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 17px;border-radius:11px;
+     font-weight:600;font-size:14.5px;cursor:pointer;border:1px solid transparent;
+     background:linear-gradient(180deg,var(--accent2),var(--accent));color:#06090f;
+     box-shadow:0 8px 24px -10px var(--glow);transition:.2s var(--ease)}
+.btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:var(--panel);color:var(--text);border-color:var(--line-2);box-shadow:none}
+.btn.ghost:hover{background:var(--panel-2)}
 
 /* hero */
-header{text-align:center;padding:clamp(52px,9vw,96px) 0 clamp(30px,5vw,44px)}
-header img{width:clamp(78px,13vw,104px);height:auto}
-h1{font-size:clamp(34px,6.4vw,54px);letter-spacing:-.025em;line-height:1.08;margin:20px 0 12px}
-.tag{color:var(--muted);font-size:clamp(16px,2.4vw,19px);margin:0 auto;max-width:30em}
-.cta{margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-block;padding:12px 22px;border-radius:11px;text-decoration:none;
-     font-weight:600;font-size:15px;background:var(--signal);color:#04070d;
-     transition:background .15s ease}
-.btn:hover{background:var(--signal-deep);color:#fff}
-.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
-.btn.ghost:hover{background:var(--panel);color:var(--text)}
+.hero{position:relative;padding:74px 0 20px}
+.aurora{position:absolute;inset:-160px 0 auto 0;height:520px;pointer-events:none;
+        background:radial-gradient(closest-side,var(--glow),transparent);filter:blur(22px);
+        opacity:.75;z-index:0}
+.hero .wrap{position:relative;z-index:1;display:grid;gap:44px;align-items:center;
+            grid-template-columns:1.06fr .94fr}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+         border:1px solid var(--line);background:var(--panel);padding:5px 11px;border-radius:999px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint)}
+h1{font-size:clamp(34px,4.7vw,55px);line-height:1.04;letter-spacing:-.033em;margin:16px 0 14px}
+h1 em{font-style:normal;background:linear-gradient(180deg,var(--accent2),var(--accent));
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:17.5px;max-width:34em;margin:0 0 26px}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap}
 
-/* product mock */
-.mock{margin:clamp(32px,6vw,56px) auto 0;max-width:420px;background:var(--panel);
-      border:1px solid var(--line);border-radius:20px;padding:16px;text-align:left;
-      box-shadow:0 26px 70px -28px rgba(0,0,0,.9)}
-.mrow{display:flex;align-items:center;gap:11px}
-.ring{width:42px;height:42px;flex:none}
-.mname{font-weight:600;font-size:15px}
-.mmeta{color:var(--muted);font-size:12.5px}
-.mcard{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:11px}
-.mlabel{color:var(--muted);font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px}
-.pills{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.pill{border-radius:9px;padding:7px 4px;text-align:center;font-size:11px;font-weight:500;
-      background:rgba(255,255,255,.06);color:var(--muted)}
-.pill.on{background:var(--signal);color:#04070d}
-.dots{display:flex;gap:5px;margin-top:8px}
-.dots i{height:4px;flex:1;border-radius:3px;background:rgba(255,255,255,.14)}
-.dots i.on{background:var(--signal)}
-.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px}
-.chip{border-radius:20px;padding:5px 4px;text-align:center;font-size:10.5px;
-      background:rgba(255,255,255,.06);color:var(--muted)}
-.chip.on{background:var(--signal);color:#04070d}
-.caption{text-align:center;color:var(--muted);font-size:13px;margin-top:14px}
+/* product shot */
+.shot{position:relative}
+.shot .halo{position:absolute;inset:6% 12%;background:radial-gradient(closest-side,var(--glow),transparent);
+            filter:blur(30px);z-index:0}
+.shot img{position:relative;z-index:1;width:100%;max-width:392px;display:block;margin-inline:auto;
+          border-radius:18px;border:1px solid var(--line-2);
+          box-shadow:0 44px 90px -34px rgba(0,0,0,.92);
+          transform:perspective(1400px) rotateY(-12deg) rotateX(3deg);
+          transition:transform .55s var(--ease)}
+.shot:hover img{transform:perspective(1400px) rotateY(-4deg) rotateX(1deg)}
 
 /* sections */
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
-   font-weight:600;margin:clamp(48px,8vw,76px) 0 16px}
-h3{margin:0 0 5px;font-size:16px}
-p{margin:0 0 14px}
-.lead{font-size:clamp(17px,2.3vw,19px)}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 19px}
-.card p{color:var(--muted);font-size:14.5px;margin:0}
-.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:15px;min-width:420px}
-th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.07em}
-td.ok{color:var(--mint)}
-pre{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.75;margin:0 0 12px}
-.c{color:var(--muted)}
-ul.credits{list-style:none;padding:0;margin:0}
-ul.credits li{padding:13px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:15px}
-ul.credits a{text-decoration:none;font-weight:600;color:var(--text)}
-ul.credits a:hover{color:var(--signal)}
-footer{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
-       color:var(--muted);font-size:13.5px}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
+section{padding:84px 0}
+.label{font-size:12.5px;text-transform:uppercase;letter-spacing:.11em;color:var(--faint);font-weight:650}
+h2{font-size:clamp(24px,3.2vw,33px);letter-spacing:-.022em;margin:10px 0 10px;line-height:1.15}
+.sec-sub{color:var(--muted);max-width:44em;margin:0 0 28px}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:13px}
+.cell{position:relative;overflow:hidden;background:var(--panel);border:1px solid var(--line);
+      border-radius:17px;padding:22px 23px;transition:.3s var(--ease)}
+.cell::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .3s var(--ease);
+             background:radial-gradient(80% 120% at 15% 0%,rgba(74,158,255,.14),transparent 60%)}
+.cell:hover{transform:translateY(-4px);border-color:var(--line-2)}
+.cell:hover::after{opacity:1}
+.cell h3{margin:0 0 6px;font-size:17px;letter-spacing:-.012em}
+.cell p{margin:0;color:var(--muted);font-size:14.5px}
+.c-6{grid-column:span 6}.c-4{grid-column:span 4}.c-3{grid-column:span 3}.c-2{grid-column:span 2}
+.cell .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;margin-bottom:12px;
+           background:rgba(74,158,255,.13);color:var(--accent)}
+
+/* eq bars */
+.bars{display:flex;align-items:flex-end;gap:5px;height:56px;margin-top:14px}
+.bars i{flex:1;border-radius:3px;background:linear-gradient(180deg,var(--accent2),var(--accent));
+        animation:eq 1.7s var(--ease) infinite alternate}
+@keyframes eq{from{height:22%}to{height:88%}}
+
+/* table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:15px;background:var(--panel)}
+table{width:100%;border-collapse:collapse;font-size:15px;min-width:460px}
+th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:0}
+th{color:var(--faint);font-weight:650;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.ok{color:var(--mint)}
+
+/* code */
+.codewrap{position:relative}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:15px;
+    padding:18px 20px;overflow-x:auto;font-size:13.5px;line-height:1.8;margin:0}
+.copy{position:absolute;top:11px;right:11px;background:var(--panel-2);border:1px solid var(--line-2);
+      color:var(--muted);border-radius:9px;padding:6px 11px;font-size:12px;cursor:pointer;
+      transition:.2s var(--ease)}
+.copy:hover{color:var(--text);background:rgba(255,255,255,.1)}
+.c{color:var(--faint)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+
+/* credits */
+ul.credits{list-style:none;padding:0;margin:0;display:grid;gap:11px}
+ul.credits li{background:var(--panel);border:1px solid var(--line);border-radius:15px;
+              padding:17px 19px;color:var(--muted);font-size:14.8px;transition:.3s var(--ease)}
+ul.credits li:hover{border-color:var(--line-2);transform:translateY(-2px)}
+ul.credits a{color:var(--text);font-weight:650}
+ul.credits a:hover{color:var(--accent)}
+
+footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--faint);font-size:13.5px}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,16px);opacity:0;
+       background:var(--panel-2);border:1px solid var(--line-2);backdrop-filter:blur(14px);
+       color:var(--text);padding:11px 18px;border-radius:12px;font-size:14px;pointer-events:none;
+       transition:.28s var(--ease);z-index:99}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;gap:34px}
+  .shot img{transform:none;max-width:340px}
+  .shot:hover img{transform:none}
+  nav .links{display:none}
+  .c-4,.c-3,.c-2{grid-column:span 6}
+  .grid2{grid-template-columns:1fr}
+  section{padding:62px 0}
 }
-@media (max-width:640px){
-  .pills,.chips{grid-template-columns:repeat(3,1fr)}
-  .btn{width:100%;text-align:center}
-  .cta{flex-direction:column}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+                       transition-duration:.01ms !important;scroll-behavior:auto !important}
+  .reveal{opacity:1;transform:none}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
-  <img src="icon.png" alt="SoundcoreBridge">
-  <h1>Control your Soundcore<br>headphones from macOS</h1>
-  <p class="tag">Menu bar app and CLI, talking straight to the headset over its own Bluetooth protocol. No phone app, no cloud, no audio proxy.</p>
-  <div class="cta">
-    <a class="btn" href="https://github.com/mervin008/soundcorebridge/releases/latest">Download for macOS</a>
-    <a class="btn ghost" href="https://github.com/mervin008/soundcorebridge">View source</a>
-  </div>
-
-  <div class="mock" role="img" aria-label="The SoundcoreBridge menu bar panel showing battery, noise control and the equaliser">
-    <div class="mrow">
-      <svg class="ring" viewBox="0 0 42 42" aria-hidden="true">
-        <circle cx="21" cy="21" r="18" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3"/>
-        <circle cx="21" cy="21" r="18" fill="none" stroke="var(--signal)" stroke-width="3"
-                stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="23"
-                transform="rotate(-90 21 21)"/>
-        <path d="M14 22v-1a7 7 0 0 1 14 0v1" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-        <rect x="12.4" y="21" width="3.6" height="6.4" rx="1.8" fill="#fff"/>
-        <rect x="26" y="21" width="3.6" height="6.4" rx="1.8" fill="#fff"/>
-      </svg>
-      <div>
-        <div class="mname">Soundcore Space 2</div>
-        <div class="mmeta">80%&nbsp;·&nbsp;fw 01.59&nbsp;·&nbsp;2 devices</div>
-      </div>
+<nav id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="icon.png" alt="">SoundcoreBridge</a>
+    <div class="links">
+      <a href="#features">Features</a><a href="#devices">Devices</a>
+      <a href="#install">Install</a><a href="#how">How it works</a>
     </div>
-
-    <div class="mcard">
-      <div class="mlabel">Noise control</div>
-      <div class="pills">
-        <div class="pill on">ANC</div><div class="pill">Ambient</div><div class="pill">Off</div>
-      </div>
-      <div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
-    </div>
-
-    <div class="mcard">
-      <div class="mlabel">Equaliser</div>
-      <svg viewBox="0 0 268 66" width="100%" height="58" preserveAspectRatio="none" aria-hidden="true">
-        <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="var(--signal)" stop-opacity=".34"/>
-          <stop offset="1" stop-color="var(--signal)" stop-opacity="0"/>
-        </linearGradient></defs>
-        <line x1="0" y1="33" x2="268" y2="33" stroke="rgba(255,255,255,.10)" stroke-dasharray="3 3"/>
-        <path d="M 0.0 16.5 C 6.4 17.4, 25.5 18.3, 38.3 22.0 C 51.0 25.7, 63.8 35.7, 76.6 38.5 C 89.3 41.2, 102.1 40.3, 114.9 38.5 C 127.6 36.7, 140.4 31.2, 153.1 27.5 C 165.9 23.8, 178.7 19.2, 191.4 16.5 C 204.2 13.8, 217.0 12.8, 229.7 11.0 C 242.5 9.2, 261.6 6.4, 268.0 5.5 L 268.0 66.0 L 0 66.0 Z" fill="url(#g)"/>
-        <path d="M 0.0 16.5 C 6.4 17.4, 25.5 18.3, 38.3 22.0 C 51.0 25.7, 63.8 35.7, 76.6 38.5 C 89.3 41.2, 102.1 40.3, 114.9 38.5 C 127.6 36.7, 140.4 31.2, 153.1 27.5 C 165.9 23.8, 178.7 19.2, 191.4 16.5 C 204.2 13.8, 217.0 12.8, 229.7 11.0 C 242.5 9.2, 261.6 6.4, 268.0 5.5" fill="none" stroke="var(--signal)" stroke-width="2.4"
-              stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <div class="chips"><div class="chip">Signature</div><div class="chip">Acoustic</div><div class="chip on">Rock</div></div>
+    <div class="right">
+      <a class="btn ghost" href="https://github.com/mervin008/soundcorebridge">GitHub</a>
+      <a class="btn" href="#install">Install</a>
     </div>
   </div>
-  <p class="caption">The panel, drawn with the Rock preset's real band values.</p>
-</header>
+</nav>
 
-<h2>Why</h2>
-<p class="lead">Anker ships the Soundcore app for Android and iOS only. Plug the headphones into a Mac and you lose ANC control, the equaliser, and any idea of the battery level — even though the headset is perfectly happy to be told what to do over Bluetooth.</p>
-
-<h2>Features</h2>
-<div class="grid">
-  <div class="card"><h3>Noise control</h3><p>Noise Cancelling, Transparency and Normal, with ANC strength 1&ndash;5.</p></div>
-  <div class="card"><h3>Equaliser</h3><p>All 22 factory presets plus a custom 8-band curve, &plusmn;6&nbsp;dB.</p></div>
-  <div class="card"><h3>At a glance</h3><p>Battery, firmware and multipoint status, tinted by listening mode.</p></div>
-  <div class="card"><h3>Scriptable</h3><p>A CLI for automation, plus the tools used to map the protocol.</p></div>
+<div class="hero" id="top">
+  <div class="aurora"></div>
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>v0.1.0 · verified on Space 2</span>
+      <h1>Your Soundcore headphones,<br><em>controlled from macOS</em></h1>
+      <p class="sub">Menu bar app and CLI talking straight to the headset over its own Bluetooth protocol. No phone app, no cloud, no audio proxy.</p>
+      <div class="hero-cta">
+        <a class="btn" href="#install">Install with Homebrew</a>
+        <a class="btn ghost" href="https://github.com/mervin008/soundcorebridge/releases/latest">Download .app</a>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="halo"></div>
+      <img src="img/panel-anc.png" alt="The SoundcoreBridge menu bar panel: battery and firmware, noise control with strength level, and the equaliser showing the Rock preset curve" width="410" height="473">
+    </div>
+  </div>
 </div>
 
-<h2>Supported devices</h2>
-<div class="tablewrap">
-<table>
-  <tr><th>Device</th><th>Model</th><th>Status</th></tr>
-  <tr><td>Soundcore Space 2</td><td>D1402</td><td class="ok">Verified &mdash; full control</td></tr>
-  <tr><td>Other Soundcore models</td><td>&mdash;</td><td>Detected &mdash; read-only</td></tr>
-</table>
-</div>
-<p class="c" style="font-size:14.5px;margin-top:12px">Unknown models stay read-only on purpose. Field offsets differ between models, and writing guessed offsets to unverified hardware is how devices end up in strange states.</p>
+<section id="features">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="label">Features</div>
+      <h2>Everything the phone app does, in your menu bar</h2>
+      <p class="sec-sub">Every value here was confirmed by reading it back off real hardware. Nothing is guessed.</p>
+    </div>
+    <div class="bento reveal">
+      <div class="cell c-3">
+        <div class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 18 0"/><rect x="2" y="12" width="5" height="8" rx="2"/><rect x="17" y="12" width="5" height="8" rx="2"/></svg></div>
+        <h3>Noise control</h3>
+        <p>Noise Cancelling, Transparency and Normal — plus ANC strength 1–5, which the phone app itself displays incorrectly.</p>
+      </div>
+      <div class="cell c-3">
+        <div class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14c3-6 5 4 8-2s5 4 8-2"/></svg></div>
+        <h3>Equaliser</h3>
+        <p>All 22 factory presets and a custom 8-band curve at ±6 dB, with the DSP compensation the firmware expects.</p>
+        <div class="bars" aria-hidden="true"><i style="animation-delay:0s"></i><i style="animation-delay:.12s"></i><i style="animation-delay:.24s"></i><i style="animation-delay:.36s"></i><i style="animation-delay:.48s"></i><i style="animation-delay:.6s"></i><i style="animation-delay:.72s"></i><i style="animation-delay:.84s"></i></div>
+      </div>
+      <div class="cell c-2">
+        <div class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="17" height="10" rx="3"/><path d="M22 11v2"/></svg></div>
+        <h3>Battery &amp; state</h3>
+        <p>Battery, firmware and multipoint host count, polled live.</p>
+      </div>
+      <div class="cell c-2">
+        <div class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg></div>
+        <h3>Scriptable</h3>
+        <p>A CLI for automation, and the tools used to map the protocol.</p>
+      </div>
+      <div class="cell c-2">
+        <div class="ico"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l8 4v6c0 5-3.4 7.6-8 8-4.6-.4-8-3-8-8V7z"/></svg></div>
+        <h3>Safe by default</h3>
+        <p>Firmware-flashing channels are blocked by service identity, on every model.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<h2>Install</h2>
-<pre><span class="c">$</span> brew tap mervin008/tap
+<section id="devices">
+  <div class="wrap reveal">
+    <div class="label">Compatibility</div>
+    <h2>Verified hardware, not a wishlist</h2>
+    <p class="sec-sub">Unknown models stay read-only on purpose. Field offsets differ between models, and writing guessed offsets to unverified hardware is how devices end up in strange states.</p>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Device</th><th>Model</th><th>Status</th></tr>
+        <tr><td>Soundcore Space 2</td><td class="mono">D1402</td><td class="ok">Verified — full control</td></tr>
+        <tr><td>Other Soundcore models</td><td class="mono">—</td><td>Detected — battery &amp; firmware, read-only</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap reveal">
+    <div class="label">Install</div>
+    <h2>Two commands and a trust step</h2>
+    <p class="sec-sub">Homebrew refuses untrusted third-party casks, so the middle line is required rather than optional. The app is ad-hoc signed rather than notarised, which is what <code>--no-quarantine</code> handles. macOS 13 or later.</p>
+    <div class="codewrap">
+      <button class="copy" id="copyBtn" type="button">Copy</button>
+<pre id="cmd"><span class="c">$</span> brew tap mervin008/tap
 <span class="c">$</span> brew trust mervin008/tap
 <span class="c">$</span> brew install --cask --no-quarantine mervin008/tap/soundcorebridge</pre>
-<p class="c" style="font-size:14.5px">Homebrew requires third-party casks to be trusted explicitly, hence the middle step. The app is ad-hoc signed rather than notarised, which is what <code>--no-quarantine</code> handles. Requires macOS&nbsp;13 or later.</p>
-
-<h2>Build from source</h2>
-<pre><span class="c">$</span> git clone https://github.com/mervin008/soundcorebridge
-<span class="c">$</span> cd soundcorebridge && ./make-app.sh
-<span class="c">$</span> open build/SoundcoreBridge.app</pre>
-
-<h2>CLI</h2>
-<pre><span class="c">$</span> soundcorectl status                  <span class="c"># battery, firmware, ANC, EQ</span>
+    </div>
+    <div class="grid2" style="margin-top:13px">
+      <div class="codewrap"><pre><span class="c"># build from source</span>
+<span class="c">$</span> git clone https://github.com/mervin008/soundcorebridge
+<span class="c">$</span> cd soundcorebridge &amp;&amp; ./make-app.sh</pre></div>
+      <div class="codewrap"><pre><span class="c"># or drive it from the shell</span>
 <span class="c">$</span> soundcorectl anc nc --level 5
-<span class="c">$</span> soundcorectl eq rock
-<span class="c">$</span> soundcorectl eq "6,4,2,0,0,-2,-4,-6" <span class="c"># custom curve, dB per band</span></pre>
+<span class="c">$</span> soundcorectl eq "6,4,2,0,0,-2,-4,-6"</pre></div>
+    </div>
+  </div>
+</section>
 
-<h2>How it works</h2>
-<pre>RFCOMM ch 30  &rarr;  frame codec (08EE/09FF + checksum)  &rarr;  device profile  &rarr;  UI</pre>
-<p>The frame format is the same across Soundcore models. What changes per model is where fields sit in the state blob, which value means which sound mode, and how many EQ bands there are &mdash; so adding a device is a profile, not new protocol code.</p>
-<p>Two things cost real time to find: writes are <strong>silently ignored until a handshake runs</strong>, and the <strong>first RFCOMM open in a process always fails</strong> &mdash; it primes IOBluetooth&rsquo;s run loop and the callback never arrives. Both are documented in the <a href="protocol-map.md">protocol map</a>.</p>
+<section id="how">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="label">How it works</div>
+      <h2>One codec, many devices</h2>
+    </div>
+    <div class="bento reveal" style="margin-top:8px">
+      <div class="cell c-4">
+        <h3>The pipeline</h3>
+        <p class="mono" style="font-size:13px;color:var(--muted);margin-top:8px">RFCOMM ch 30 → frame codec (08EE/09FF + checksum) → device profile → UI</p>
+        <p style="margin-top:12px">The frame format is identical across Soundcore models. What changes is where fields sit in the state blob, which value means which sound mode, and how many EQ bands exist — so adding a device is a profile, not new protocol code.</p>
+      </div>
+      <div class="cell c-2">
+        <h3>Two hard-won facts</h3>
+        <p>Writes are silently discarded until a handshake runs. And the first RFCOMM open in a process always fails — it primes IOBluetooth's run loop and the callback never arrives. Both are in the <a href="protocol-map.md">protocol map</a>.</p>
+      </div>
+    </div>
+    <div class="shot reveal" style="margin-top:34px;max-width:420px">
+      <img src="img/panel-ambient.png" alt="The same panel in Transparency mode, where the accent colour shifts from blue to teal" style="transform:none;max-width:100%">
+      <p style="color:var(--faint);font-size:13.5px;text-align:center;margin-top:12px">The interface is tinted by listening mode — blue for ANC, teal for Transparency.</p>
+    </div>
+  </div>
+</section>
 
-<h2>Credits</h2>
-<ul class="credits">
-  <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev &mdash; the model for what a native desktop bridge should be, and the project that proved macOS RFCOMM control was possible at all</li>
-  <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy &mdash; the reference Soundcore implementation; its capability-driven device model shaped the profile layer here</li>
-  <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios &mdash; earlier desktop Soundcore client and protocol reference</li>
-</ul>
+<section>
+  <div class="wrap reveal">
+    <div class="label">Credits</div>
+    <h2>Built on other people's work</h2>
+    <ul class="credits">
+      <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — the model for what a native desktop bridge should be, and the project that proved macOS RFCOMM control was possible at all</li>
+      <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation; its capability-driven device model shaped the profile layer here</li>
+      <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop Soundcore client and protocol reference</li>
+    </ul>
+  </div>
+</section>
 
 <footer>
-  Unofficial project, not affiliated with Anker or Soundcore. Firmware-update
-  channels are deliberately blocked, but this talks to your headphones over an
-  undocumented protocol &mdash; no warranty.
-  <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT</a>.
+  <div class="wrap">
+    Unofficial project, not affiliated with Anker or Soundcore. Firmware-update channels are
+    deliberately blocked, but this talks to your headphones over an undocumented protocol — no warranty.
+    <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT</a>.
+  </div>
 </footer>
 
-</div>
+<div class="toast" id="toast">Copied</div>
+
+<script>
+const nav = document.getElementById('nav');
+addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 12), {passive:true});
+
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:.14});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+} else {
+  document.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+}
+
+const toast = document.getElementById('toast');
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = document.getElementById('cmd').innerText.replace(/^\$ /gm, '');
+  try { await navigator.clipboard.writeText(text); toast.textContent = 'Copied'; }
+  catch { toast.textContent = 'Press ⌘C to copy'; }
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1600);
+});
+</script>
 </body>
 </html>

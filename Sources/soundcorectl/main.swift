@@ -1,5 +1,6 @@
 import Foundation
 import IOBluetooth
+import SwiftUI
 
 setvbuf(stdout, nil, _IONBF, 0)   // unbuffered: probes are watched live
 
@@ -461,6 +462,49 @@ func modeAppTest() throws {
     pump(1.2); readBack("after transparency")
 }
 
+
+/// Renders the real menu bar panel to a PNG. This is the actual SwiftUI view
+/// with representative state pushed into it — not a mock-up drawn by hand — so
+/// the screenshots in the docs cannot drift from the shipping UI.
+@MainActor
+func modeScreenshot() throws {
+    let path = args.str("out") ?? "docs/screenshot.png"
+    let dev = DeviceController.shared
+    dev.connected = true
+    dev.deviceName = "soundcore Space 2"
+    dev.profile = .space2
+    dev.status = "Connected"
+    let presetKey = args.str("preset") ?? "rock"
+    let modeByte: UInt8 = {
+        switch (args.str("mode") ?? "nc").lowercased() {
+        case "transparency", "ambient": return 0x01
+        case "normal", "off":           return 0x02
+        default:                        return 0x00
+        }
+    }()
+    dev.state = DeviceState(
+        battery: 8, batteryMax: 9, firmware: "01.59", model: "1402",
+        eqPreset: eqPresets[presetKey]?.id.first ?? 0x11,
+        eqBands: eqPresets[presetKey]?.bands ?? eqPresets["rock"]!.bands,
+        ancMode: modeByte, ancLevel: 4, hostCount: 2
+    )
+
+    let content = MenuContent(dev: dev)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .environment(\.colorScheme, .dark)
+
+    let renderer = ImageRenderer(content: content)
+    renderer.scale = 2
+    guard let image = renderer.nsImage,
+          let tiff = image.tiffRepresentation,
+          let rep = NSBitmapImageRep(data: tiff),
+          let png = rep.representation(using: .png, properties: [:]) else {
+        throw ProbeError("could not render the panel")
+    }
+    try png.write(to: URL(fileURLWithPath: path))
+    log("wrote \(path)  \(Int(image.size.width))x\(Int(image.size.height)) pt")
+}
+
 func stamp() -> String {
     let f = DateFormatter()
     f.dateFormat = "HH:mm:ss.SSS"
@@ -476,6 +520,7 @@ do {
     case "watch":    try modeWatch()
     case "send":     try modeSend()
     case "menubar":  runMenuBar()
+    case "screenshot": try MainActor.assumeIsolated { try modeScreenshot() }
     case "status":   try modeStatus()
     case "apptest":  try modeAppTest()
     case "anc":      try modeANC()

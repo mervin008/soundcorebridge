@@ -9,6 +9,10 @@
   Menu bar app and CLI — no phone app, no cloud, no audio proxy.
 </p>
 
+<p align="center">
+  <img src="docs/img/panel-anc.png" width="380" alt="The SoundcoreBridge menu bar panel">
+</p>
+
 ---
 
 ## Why
