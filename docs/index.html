@@ -10,190 +10,270 @@
 <meta property="og:title" content="SoundcoreBridge">
 <meta property="og:description" content="Control your Soundcore headphones from your Mac.">
 <meta property="og:image" content="img/panel-anc.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0c0f15; --card:#141922; --line:#232b38; --line-2:#333d4e;
-  --text:#eef1f6; --muted:#9aa5b5; --faint:#6b7685;
-  --accent:#4a9eff; --mint:#26d0a6;
-  --ease:cubic-bezier(.2,.7,.2,1);
+  --bg:#070809; --raise:#0f1116; --line:#1c1f26; --line-2:#2a2f39;
+  --text:#f2f3f5; --muted:#9298a3; --faint:#646a76;
+  --accent:#4a9eff; --accent-soft:rgba(74,158,255,.14);
+  --serif:"Instrument Serif",ui-serif,Georgia,serif;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.68,.16,1);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 html,body{overflow-x:hidden}
 body{
   margin:0;background:var(--bg);color:var(--text);
-  font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font:17px/1.7 var(--sans);letter-spacing:-.005em;
   -webkit-font-smoothing:antialiased;
 }
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline;text-underline-offset:3px}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
-.wrap{max-width:720px;margin:0 auto;padding:0 22px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:1.5px solid var(--accent);outline-offset:4px;border-radius:3px}
+.wrap{max-width:1140px;margin:0 auto;padding:0 28px}
+.col{max-width:640px}
 
-header{text-align:center;padding:76px 0 8px}
-header img.logo{width:84px;height:84px}
-h1{font-size:clamp(32px,5.2vw,44px);letter-spacing:-.028em;line-height:1.1;margin:20px 0 12px;font-weight:650}
-.tagline{color:var(--muted);font-size:19px;margin:0 auto 28px;max-width:26em}
-.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:600;font-size:15.5px;
-     background:var(--accent);color:#06090f;transition:.18s var(--ease)}
-.btn:hover{filter:brightness(1.08);text-decoration:none}
-.btn.alt{background:transparent;color:var(--text);border:1px solid var(--line-2)}
-.btn.alt:hover{border-color:var(--muted)}
+/* ---------- type ---------- */
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+         font-weight:500;margin:0 0 22px}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,8.4vw,104px);
+   line-height:.96;letter-spacing:-.025em;margin:0 0 28px}
+h1 em{font-style:italic;color:var(--accent)}
+h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.6vw,54px);
+   line-height:1.04;letter-spacing:-.02em;margin:0 0 22px}
+h3{font-family:var(--serif);font-weight:400;font-size:27px;line-height:1.14;margin:0 0 9px;
+   letter-spacing:-.015em}
+p{margin:0 0 20px;color:var(--muted);font-size:17.5px}
+p.big{font-size:21px;line-height:1.6;color:var(--text)}
+p:last-child{margin-bottom:0}
+strong{color:var(--text);font-weight:500}
 
-.shot{margin:44px auto 0;max-width:392px}
-.shot img{width:100%;display:block;border-radius:16px;border:1px solid var(--line);
-          box-shadow:0 30px 70px -30px rgba(0,0,0,.85)}
+/* ---------- hero ---------- */
+.hero{min-height:88vh;display:flex;flex-direction:column;justify-content:center;
+      padding:96px 0 40px;position:relative}
+.hero .mark{width:56px;height:56px;margin-bottom:38px;border-radius:14px}
+.hero p{max-width:30em;font-size:19px}
+.actions{display:flex;gap:26px;align-items:center;margin-top:34px;flex-wrap:wrap}
+.cta{font-size:16px;font-weight:500;color:var(--text);border-bottom:1px solid var(--line-2);
+     padding-bottom:5px;transition:border-color .3s var(--ease),color .3s var(--ease)}
+.cta:hover{border-color:var(--accent);color:var(--accent)}
+.cta.primary{color:var(--accent);border-color:var(--accent)}
+.scrollcue{margin-top:72px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--faint);display:flex;align-items:center;gap:11px}
+.scrollcue .ln{width:52px;height:1px;background:var(--line-2);position:relative;overflow:hidden}
+.scrollcue .ln::after{content:"";position:absolute;inset:0;background:var(--accent);
+                      transform:translateX(-100%);animation:sweep 2.6s var(--ease) infinite}
+@keyframes sweep{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
 
-section{padding:56px 0;border-top:1px solid var(--line)}
-section:first-of-type{border-top:0}
-h2{font-size:25px;letter-spacing:-.02em;margin:0 0 14px;font-weight:650}
-p{margin:0 0 16px;color:var(--muted)}
-p.tight{margin-bottom:0}
-strong{color:var(--text);font-weight:600}
+/* ---------- sections ---------- */
+section{padding:112px 0;border-top:1px solid var(--line)}
+.stage{padding:104px 0;border-top:1px solid var(--line);text-align:center}
 
-ul.feat{list-style:none;padding:0;margin:0;display:grid;gap:14px}
-ul.feat li{display:flex;gap:13px;align-items:flex-start}
-ul.feat svg{flex:none;margin-top:3px;color:var(--accent)}
-ul.feat b{display:block;color:var(--text);font-weight:600;font-size:16.5px}
-ul.feat span{color:var(--muted);font-size:15.5px}
+/* editorial numbered list */
+.items{margin-top:14px}
+.item{display:grid;grid-template-columns:76px 1fr;gap:28px;padding:34px 0;
+      border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .n{font-family:var(--serif);font-size:20px;color:var(--faint);padding-top:5px}
+.item p{margin:0;font-size:16.5px}
 
-pre{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 19px;
-    overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;
-    line-height:1.8;margin:0 0 14px;color:var(--text)}
+/* screenshot stage */
+.stage img{width:100%;max-width:392px;display:block;margin:0 auto;border-radius:18px;
+           border:1px solid var(--line-2);box-shadow:0 50px 100px -40px rgba(0,0,0,.95)}
+.stage .cap{color:var(--faint);font-size:14px;margin-top:26px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:34px;max-width:840px;margin:0 auto}
+.duo figure{margin:0}
+.duo img{max-width:100%}
+.duo figcaption{color:var(--faint);font-size:13.5px;margin-top:16px}
+
+/* two column layout */
+.split{display:grid;grid-template-columns:.85fr 1.15fr;gap:72px;align-items:start}
+
+/* code */
+.codewrap{position:relative;margin-top:8px}
+pre{background:var(--raise);border:1px solid var(--line);border-radius:14px;padding:22px 24px;
+    overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13.5px;
+    line-height:2;margin:0;color:var(--text)}
 .c{color:var(--faint)}
-.codewrap{position:relative}
-.copy{position:absolute;top:11px;right:11px;background:var(--bg);border:1px solid var(--line-2);
-      color:var(--muted);border-radius:8px;padding:5px 11px;font-size:12.5px;cursor:pointer;
-      transition:.18s var(--ease)}
+.copy{position:absolute;top:13px;right:13px;background:var(--bg);border:1px solid var(--line-2);
+      color:var(--muted);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;
+      font-family:var(--sans);transition:.2s var(--ease)}
 .copy:hover{color:var(--text);border-color:var(--muted)}
 
-.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-table{width:100%;border-collapse:collapse;font-size:15.5px;min-width:360px}
-th,td{text-align:left;padding:13px 17px;border-bottom:1px solid var(--line)}
-tr:last-child td{border-bottom:0}
-th{color:var(--faint);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em}
-.ok{color:var(--mint)}
+/* table */
+.rows{border-top:1px solid var(--line)}
+.rw{display:flex;justify-content:space-between;gap:20px;padding:20px 0;
+    border-bottom:1px solid var(--line);font-size:16.5px}
+.rw span:last-child{color:var(--muted)}
+.rw .yes{color:var(--accent)}
 
-.gallery{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.gallery figure{margin:0}
-.gallery img{width:100%;display:block;border-radius:12px;border:1px solid var(--line)}
-.gallery figcaption{color:var(--faint);font-size:13.5px;margin-top:9px;text-align:center}
+/* credits */
+.credits{list-style:none;padding:0;margin:0}
+.credits li{padding:24px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:16.5px}
+.credits li:first-child{border-top:1px solid var(--line)}
+.credits a{color:var(--text);border-bottom:1px solid var(--line-2);padding-bottom:2px}
+.credits a:hover{border-color:var(--accent);color:var(--accent)}
 
-ul.credits{list-style:none;padding:0;margin:0;display:grid;gap:13px}
-ul.credits li{color:var(--muted);font-size:15.5px}
-ul.credits a{font-weight:600}
+footer{padding:56px 0 72px;color:var(--faint);font-size:14px;border-top:1px solid var(--line)}
+footer a{border-bottom:1px solid var(--line-2)}
 
-footer{border-top:1px solid var(--line);padding:28px 0 56px;color:var(--faint);font-size:14px;text-align:center}
+/* reveal */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.rv.in{opacity:1;transform:none}
 
-.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,10px);opacity:0;
-       background:var(--card);border:1px solid var(--line-2);color:var(--text);
-       padding:10px 17px;border-radius:10px;font-size:14px;pointer-events:none;
-       transition:.22s var(--ease);z-index:99}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,12px);opacity:0;
+       background:var(--raise);border:1px solid var(--line-2);color:var(--text);
+       padding:11px 18px;border-radius:10px;font-size:14px;pointer-events:none;
+       transition:.24s var(--ease);z-index:99}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
-@media (max-width:640px){
-  .gallery{grid-template-columns:1fr}
-  header{padding:54px 0 4px}
-  section{padding:44px 0}
-  .btn{width:100%;text-align:center}
+@media (max-width:860px){
+  .split{grid-template-columns:1fr;gap:40px}
+  .duo{grid-template-columns:1fr;gap:44px}
+  .item{grid-template-columns:52px 1fr;gap:18px}
+  section,.stage{padding:76px 0}
+  .hero{min-height:auto;padding:72px 0 30px}
+  .scrollcue{margin-top:52px}
 }
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{transition-duration:.01ms!important;scroll-behavior:auto!important}
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;
+                       scroll-behavior:auto!important}
+  .rv{opacity:1;transform:none}
 }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
-  <img class="logo" src="icon.png" alt="">
-  <h1>Control your Soundcore headphones from your Mac</h1>
-  <p class="tagline">A small menu bar app. No phone required.</p>
-  <div class="row">
-    <a class="btn" href="#install">Install</a>
-    <a class="btn alt" href="https://github.com/mervin008/soundcorebridge">View on GitHub</a>
+<div class="hero">
+  <div class="wrap">
+    <img class="mark" src="icon.png" alt="">
+    <p class="eyebrow">SoundcoreBridge — for macOS</p>
+    <h1>Stop reaching<br>for your <em>phone</em>.</h1>
+    <p>Your Soundcore headphones already sound great on your Mac. This puts noise cancelling and the equaliser in your menu bar, where they should have been.</p>
+    <div class="actions">
+      <a class="cta primary" href="#install">Install it</a>
+      <a class="cta" href="https://github.com/mervin008/soundcorebridge">View the source</a>
+    </div>
+    <div class="scrollcue"><span class="ln"></span>Scroll</div>
   </div>
-  <div class="shot">
+</div>
+
+<div class="stage rv">
+  <div class="wrap">
     <img src="img/panel-anc.png" width="410" height="473"
-         alt="The SoundcoreBridge panel showing battery, noise control with strength level, and the equaliser">
+         alt="The SoundcoreBridge menu bar panel showing battery, noise control with strength level, and the equaliser">
+    <p class="cap">The whole app. One click from the menu bar.</p>
   </div>
-</header>
+</div>
 
 <section>
-  <h2>The problem</h2>
-  <p>Your headphones pair with your Mac and play audio perfectly well. But the moment you want to change noise cancelling or the equaliser, you have to pick up your phone and open the Soundcore app — because Anker only ships it for Android and iOS.</p>
-  <p class="tight">SoundcoreBridge puts those controls in your menu bar instead.</p>
-</section>
-
-<section>
-  <h2>What you get</h2>
-  <ul class="feat">
-    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 18 0"/><rect x="2" y="12" width="5" height="8" rx="2"/><rect x="17" y="12" width="5" height="8" rx="2"/></svg>
-      <div><b>Noise cancelling</b><span>Off, transparency, or on with strength 1 to 5.</span></div></li>
-    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14c3-6 5 4 8-2s5 4 8-2"/></svg>
-      <div><b>Equaliser</b><span>All 22 presets, plus your own 8-band curve.</span></div></li>
-    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="17" height="10" rx="3"/><path d="M22 11v2"/></svg>
-      <div><b>Battery and firmware</b><span>At a glance, without opening anything.</span></div></li>
-    <li><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>
-      <div><b>A command line tool</b><span>If you'd rather script it.</span></div></li>
-  </ul>
-</section>
-
-<section>
-  <h2>A look at it</h2>
-  <div class="gallery">
-    <figure><img src="img/panel-anc.png" alt="The panel in noise cancelling mode, accent blue">
-      <figcaption>Noise cancelling</figcaption></figure>
-    <figure><img src="img/panel-ambient.png" alt="The panel in transparency mode, accent teal">
-      <figcaption>Transparency — the colour follows the mode</figcaption></figure>
+  <div class="wrap">
+    <div class="split rv">
+      <div><p class="eyebrow">The problem</p></div>
+      <div class="col">
+        <h2>Audio works. Control doesn't.</h2>
+        <p class="big">Your headphones pair with your Mac and play perfectly well. But the moment you want to switch noise cancelling off, or pull the bass back, you have to pick up your phone and open the Soundcore app.</p>
+        <p>Anker only ships that app for Android and iOS. So the controls live on a different device from the one you're listening on.</p>
+      </div>
+    </div>
   </div>
 </section>
+
+<section>
+  <div class="wrap">
+    <div class="split rv">
+      <div><p class="eyebrow">What you get</p></div>
+      <div class="col items">
+        <div class="item"><div class="n">01</div>
+          <div><h3>Noise cancelling</h3><p>Off, transparency, or on with strength one through five.</p></div></div>
+        <div class="item"><div class="n">02</div>
+          <div><h3>Equaliser</h3><p>All twenty-two presets, or draw your own eight-band curve.</p></div></div>
+        <div class="item"><div class="n">03</div>
+          <div><h3>Battery and firmware</h3><p>Visible at a glance, without opening anything.</p></div></div>
+        <div class="item"><div class="n">04</div>
+          <div><h3>A command line tool</h3><p>For when you'd rather script it than click it.</p></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stage rv">
+  <div class="wrap">
+    <div class="duo">
+      <figure><img src="img/panel-anc.png" alt="The panel in noise cancelling mode, tinted blue">
+        <figcaption>Noise cancelling</figcaption></figure>
+      <figure><img src="img/panel-ambient.png" alt="The panel in transparency mode, tinted teal">
+        <figcaption>Transparency — the colour follows the mode</figcaption></figure>
+    </div>
+  </div>
+</div>
 
 <section id="install">
-  <h2>Install</h2>
-  <div class="codewrap">
-    <button class="copy" id="copyBtn" type="button">Copy</button>
+  <div class="wrap">
+    <div class="split rv">
+      <div><p class="eyebrow">Install</p></div>
+      <div class="col">
+        <h2>Three lines.</h2>
+        <div class="codewrap">
+          <button class="copy" id="copyBtn" type="button">Copy</button>
 <pre id="cmd"><span class="c">$</span> brew tap mervin008/tap
 <span class="c">$</span> brew trust mervin008/tap
 <span class="c">$</span> brew install --cask --no-quarantine mervin008/tap/soundcorebridge</pre>
+        </div>
+        <p style="margin-top:22px">Homebrew asks you to trust third-party casks, hence the middle line. The app isn't notarised by Apple, which is what the last flag handles. Needs macOS 13 or later.</p>
+        <p>Prefer a download? Take the zip from <a class="cta" style="font-size:inherit" href="https://github.com/mervin008/soundcorebridge/releases/latest">releases</a>.</p>
+      </div>
+    </div>
   </div>
-  <p>Homebrew asks you to trust third-party casks, hence the middle line. The app isn't notarised by Apple, which is what <code>--no-quarantine</code> takes care of. Needs macOS 13 or later.</p>
-  <p class="tight">Prefer a download? Grab the zip from <a href="https://github.com/mervin008/soundcorebridge/releases/latest">releases</a>.</p>
 </section>
 
 <section>
-  <h2>Supported headphones</h2>
-  <div class="tablewrap">
-    <table>
-      <tr><th>Device</th><th>Status</th></tr>
-      <tr><td>Soundcore Space 2</td><td class="ok">Full control</td></tr>
-      <tr><td>Other Soundcore models</td><td>Battery and firmware only</td></tr>
-    </table>
+  <div class="wrap">
+    <div class="split rv">
+      <div><p class="eyebrow">Compatibility</p></div>
+      <div class="col">
+        <h2>One model, properly.</h2>
+        <div class="rows">
+          <div class="rw"><span>Soundcore Space 2</span><span class="yes">Full control</span></div>
+          <div class="rw"><span>Other Soundcore models</span><span>Battery and firmware</span></div>
+        </div>
+        <p style="margin-top:24px">Only the Space 2 has been tested against real hardware, so it's the only one that gets write access. Everything else stays read-only rather than guessing. If you have another model, <a class="cta" style="font-size:inherit" href="https://github.com/mervin008/soundcorebridge/issues">open an issue</a> — it's mostly a matter of confirming what it does.</p>
+      </div>
+    </div>
   </div>
-  <p style="margin-top:16px" class="tight">Only the Space 2 has been tested against real hardware, so it's the only one that gets write access. If you have another model, <a href="https://github.com/mervin008/soundcorebridge/issues">open an issue</a> and we can work out what it needs.</p>
 </section>
 
 <section>
-  <h2>How it works</h2>
-  <p class="tight">The app speaks the same Bluetooth protocol the phone app uses, worked out by watching real traffic. If you're curious, the details are in the <a href="protocol-map.md">protocol map</a>.</p>
+  <div class="wrap">
+    <div class="split rv">
+      <div><p class="eyebrow">Credits</p></div>
+      <div class="col">
+        <h2>Built on other people's work.</h2>
+        <ul class="credits">
+          <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — showed this was possible on macOS at all</li>
+          <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation</li>
+          <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop client and protocol reference</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section>
-  <h2>Credits</h2>
-  <ul class="credits">
-    <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — showed that this was possible on macOS at all</li>
-    <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation</li>
-    <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop client and protocol reference</li>
-  </ul>
-</section>
-
-</div>
-<footer>Not affiliated with Anker or Soundcore. <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT licensed</a>.</footer>
+<footer>
+  <div class="wrap">
+    Not affiliated with Anker or Soundcore.
+    <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT licensed</a>.
+  </div>
+</footer>
 
 <div class="toast" id="toast">Copied</div>
 <script>
+if('IntersectionObserver' in window){
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+}else{document.querySelectorAll('.rv').forEach(el=>el.classList.add('in'))}
 const toast=document.getElementById('toast');
 document.getElementById('copyBtn').addEventListener('click',async()=>{
   const t=document.getElementById('cmd').innerText.replace(/^\$ /gm,'');
