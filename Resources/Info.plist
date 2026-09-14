@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.mervin.soundcorebridge</string>
+    <key>CFBundleName</key>
+    <string>SoundcoreBridge</string>
+    <key>CFBundleExecutable</key>
+    <string>soundcorectl</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>SoundcoreBridge talks to your Soundcore headset over Bluetooth to read and change its settings.</string>
+</dict>
+</plist>

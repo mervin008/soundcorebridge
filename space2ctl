@@ -1,0 +1,3 @@
+#!/bin/bash
+# Backward-compatibility wrapper for space2ctl -> soundcorectl
+exec swift run soundcorectl "$@"
