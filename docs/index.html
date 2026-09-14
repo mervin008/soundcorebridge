@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SoundcoreBridge — Soundcore control for macOS</title>
+<meta name="description" content="Native macOS control for Soundcore headphones. Menu bar app and CLI, over the vendor Bluetooth protocol.">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --bg: #0b0f16;
+    --panel: #141a25;
+    --line: #232c3b;
+    --ink: #e8edf5;
+    --muted: #8d9bb1;
+    --accent: #4a9eff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px 96px; }
+  header { text-align: center; padding: 88px 0 56px; }
+  header img { width: 104px; height: 104px; }
+  h1 { font-size: 40px; letter-spacing: -0.02em; margin: 22px 0 10px; }
+  .tag { color: var(--muted); font-size: 18px; margin: 0 auto; max-width: 30em; }
+  .cta { margin-top: 30px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 11px 20px; border-radius: 10px;
+    text-decoration: none; font-weight: 600; font-size: 15px;
+    background: var(--accent); color: #04070d;
+  }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.09em;
+       color: var(--muted); margin: 56px 0 18px; font-weight: 600; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px;
+       text-transform: uppercase; letter-spacing: 0.06em; }
+  pre {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 20px; overflow-x: auto; font-size: 14px; line-height: 1.7;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  .c { color: var(--muted); }
+  ul.credits { list-style: none; padding: 0; }
+  ul.credits li { padding: 11px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+  ul.credits a { color: var(--ink); text-decoration: none; font-weight: 600; }
+  ul.credits a:hover { color: var(--accent); }
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line);
+           color: var(--muted); font-size: 13.5px; }
+  footer a { color: var(--muted); }
+  @media (max-width: 560px) { h1 { font-size: 31px; } header { padding: 60px 0 40px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <img src="icon.png" alt="">
+    <h1>SoundcoreBridge</h1>
+    <p class="tag">Native macOS control for Soundcore headphones. Menu bar app and CLI — no phone app, no cloud, no audio proxy.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/mervin008/soundcorebridge">View on GitHub</a>
+      <a class="btn ghost" href="protocol-map.md">Protocol map</a>
+    </div>
+  </header>
+
+  <h2>Why</h2>
+  <p>Anker ships the Soundcore app for Android and iOS only. Plug the headphones into a Mac and you lose ANC control, the equaliser, and any idea of the battery level — even though the headset is perfectly happy to be told what to do over Bluetooth.</p>
+
+  <h2>Features</h2>
+  <div class="grid">
+    <div class="card"><h3>Noise control</h3><p>Noise Cancelling, Transparency and Normal, with ANC strength 1–5.</p></div>
+    <div class="card"><h3>Equaliser</h3><p>All 22 factory presets plus a custom 8-band curve, ±6 dB.</p></div>
+    <div class="card"><h3>At a glance</h3><p>Battery, firmware and multipoint status in the menu bar.</p></div>
+    <div class="card"><h3>Scriptable</h3><p>A CLI for automation and protocol work.</p></div>
+  </div>
+
+  <h2>Supported devices</h2>
+  <table>
+    <tr><th>Device</th><th>Model</th><th>Status</th></tr>
+    <tr><td>Soundcore Space 2</td><td>D1402</td><td>Verified — full control</td></tr>
+    <tr><td>Other Soundcore models</td><td>—</td><td>Detected — read-only</td></tr>
+  </table>
+  <p class="c" style="font-size:14.5px">Unknown models stay read-only on purpose: field offsets differ between models, and writing guessed offsets to unverified hardware is how devices end up in strange states.</p>
+
+  <h2>Build</h2>
+<pre><span class="c">$</span> git clone https://github.com/mervin008/soundcorebridge
+<span class="c">$</span> cd soundcorebridge
+<span class="c">$</span> ./make-app.sh
+<span class="c">$</span> open build/SoundcoreBridge.app</pre>
+
+  <h2>CLI</h2>
+<pre><span class="c">$</span> soundcorectl status                  <span class="c"># battery, firmware, ANC, EQ</span>
+<span class="c">$</span> soundcorectl anc nc --level 5
+<span class="c">$</span> soundcorectl eq rock
+<span class="c">$</span> soundcorectl eq "6,4,2,0,0,-2,-4,-6" <span class="c"># custom curve, dB per band</span></pre>
+
+  <h2>How it works</h2>
+<pre>RFCOMM ch 30  →  frame codec (08EE/09FF + checksum)  →  device profile  →  UI</pre>
+  <p>The frame format is the same across Soundcore models. What changes per model is where fields sit in the state blob, which value means which sound mode, and how many EQ bands there are — so adding a device is a profile, not new protocol code.</p>
+
+  <h2>Credits</h2>
+  <ul class="credits">
+    <li><a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by AmitRajput-Dev — the model for what a native desktop bridge should be, and the project that proved macOS RFCOMM control was possible at all</li>
+    <li><a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy — the reference Soundcore implementation; its capability-driven device model shaped the profile layer here</li>
+    <li><a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios — earlier desktop Soundcore client and protocol reference</li>
+  </ul>
+
+  <footer>
+    Unofficial project, not affiliated with Anker or Soundcore.
+    Firmware-update channels are deliberately blocked, but this talks to your
+    headphones over an undocumented protocol — no warranty.
+    <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT</a>.
+  </footer>
+
+</div>
+</body>
+</html>
