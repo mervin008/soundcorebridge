@@ -35,7 +35,7 @@ Every other code in categories `01`–`0B` echoes back with an empty payload.
 | 0 | Battery level **0–9**; percent = `(level+1)*10` | matches `01:03`; level 5 = 60% per macOS and the app |
 | 2–6 | ASCII firmware `01.59` | — |
 | 7–10 | ASCII model `1402` | — |
-| 11–22 | ASCII own MAC `849D4BB0798F` | — |
+| 11–22 | ASCII own MAC `AABBCCDDEEFF` | — |
 | **23** | **EQ preset ID** | Acoustic `01` → Rock `0F` |
 | **25–32** | **EQ, 8 bands** | whole block moved on preset change |
 | 69 | `07` | matches `06:02` |

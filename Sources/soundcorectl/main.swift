@@ -104,7 +104,7 @@ func modeSDP() throws {
         var ch: BluetoothRFCOMMChannelID = 0
         let hasRF = r.getRFCOMMChannelID(&ch) == kIOReturnSuccess
         var note = ""
-        if hasRF, let why = blockedChannel(ch, address: device.addressString) { note = "  << BLOCKED: \(why)" }
+        if hasRF, let why = blockedChannel(ch, device: device) { note = "  << BLOCKED: \(why)" }
         else if hasRF, allowedChannels.contains(ch) { note = "  << candidate control channel" }
         var classes = "?"
         if let attrs = r.attributes as? [NSNumber: IOBluetoothSDPDataElement],

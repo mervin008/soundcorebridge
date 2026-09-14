@@ -68,7 +68,7 @@ Querying `01:01` returns a 103-byte payload containing the complete state of the
 | `0` | 1 | Battery level: `0` to `9`. Percent is calculated as `(level + 1) * 10`. |
 | `2–6` | 5 | ASCII firmware version (e.g., `"01.59"`). |
 | `7–10` | 4 | ASCII model number (e.g., `"1402"`). |
-| `11–22` | 12 | ASCII own MAC address (e.g., `"849D4BB0798F"`). |
+| `11–22` | 12 | ASCII own MAC address (e.g., `"AABBCCDDEEFF"`). |
 | `23` | 1 | Active EQ preset ID (`01` = Acoustic, `03` = Bass Reducer, etc.). |
 | `25–32` | 8 | EQ band bytes (8 bands, see EQ encoding). |
 | `69` | 1 | Status indicator (constant `07`). |

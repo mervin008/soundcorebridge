@@ -20,7 +20,7 @@ Payload, annotated so far:
 |---|---|---|
 | 0x02–0x06 | `30 31 2E 35 39` | ASCII `01.59` — firmware version |
 | 0x07–0x0A | `31 34 30 32` | ASCII `1402` — model (D1402) |
-| 0x0B–0x16 | `38 34 39 44 34 42 42 30 37 39 38 46` | ASCII `849D4BB0798F` — own MAC |
+| 0x0B–0x16 | `41 41 42 42 43 43 44 44 45 45 46 46` | ASCII `AABBCCDDEEFF` — own MAC |
 | 0x19–0x20 | `A0 82 8C 8C A0 A0 A0 8C` | 8 bytes, plausible EQ band values |
 | rest | — | unmapped |
 

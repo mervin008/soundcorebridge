@@ -6,23 +6,46 @@ struct ProbeError: Error, CustomStringConvertible {
     init(_ m: String) { description = m }
 }
 
-/// Channels we will never open — scoped to the Space 2, since channel numbers
-/// mean entirely different things on other devices (ch 12 is OBEX Object Push
-/// on an Android phone, not firmware OTA).
-let space2Address = "84-9d-4b-b0-79-8f"
+/// Firmware-flashing services. These are matched by the *service* advertised on
+/// a channel, not by channel number: channel 12 is firmware OTA on a Space 2 but
+/// OBEX Object Push on an Android phone, so a number-based blocklist is both
+/// wrong elsewhere and useless on any device it was not written for.
+let blockedServiceNames = ["tota", "besota", "ota"]
 
-func blockedChannel(_ ch: UInt8, address: String?) -> String? {
-    guard address?.lowercased() == space2Address else { return nil }
-    return space2BlockedChannels[ch]
+/// Apple's iAP2/MFi service. Not dangerous, but it does not speak this protocol.
+let iap2UUID = "00000000-deca-fade-deca-deafdecacaff"
+
+/// BES chipset OTA service.
+let besOTAUUID = "66666666-6666-6666-6666-666666666666"
+
+/// Returns a reason if the channel must not be opened on this device.
+///
+/// Resolves the channel against the device's own SDP records, so the guard
+/// travels to every model rather than only the one it was written on.
+func blockedChannel(_ ch: UInt8, device: IOBluetoothDevice) -> String? {
+    let records = (device.services as? [IOBluetoothSDPServiceRecord]) ?? []
+    for record in records {
+        var id: BluetoothRFCOMMChannelID = 0
+        guard record.getRFCOMMChannelID(&id) == kIOReturnSuccess, id == ch else { continue }
+
+        let name = (record.getServiceName() ?? "").lowercased()
+        if blockedServiceNames.contains(where: { name == $0 || name.hasSuffix($0) }) {
+            return "\(record.getServiceName() ?? "OTA") — firmware update service (bricking risk)"
+        }
+        let attributes = (record.attributes as? [NSNumber: IOBluetoothSDPDataElement]) ?? [:]
+        let described = attributes[NSNumber(value: 1)]?.description.lowercased() ?? ""
+        let compact = described.replacingOccurrences(of: " ", with: "")
+        if compact.contains(besOTAUUID.replacingOccurrences(of: "-", with: "")) {
+            return "BES chipset OTA (bricking risk)"
+        }
+        if compact.contains(iap2UUID.replacingOccurrences(of: "-", with: "")) {
+            return "Apple iAP2 / MFi — not this protocol"
+        }
+    }
+    return nil
 }
 
-let space2BlockedChannels: [UInt8: String] = [
-    12: "TOTA — firmware OTA (bricking risk)",
-    13: "BESOTA — BES chipset OTA (bricking risk)",
-    16: "IOSSPP — Apple iAP2 / MFi, not our protocol",
-]
-
-/// Vendor control channels found in the Space 2 SDP record.
+/// Vendor control channels seen on Soundcore hardware.
 let allowedChannels: Set<UInt8> = [30, 17]
 
 /// IOBluetooth delivers delegate callbacks through the *run loop* of the thread
@@ -99,7 +122,7 @@ final class RFCOMMLink: NSObject {
     /// trustworthy liveness test. Failed attempts are never closed: the close
     /// lands asynchronously and tears down whichever attempt succeeds next.
     func open(channelID: UInt8, timeout: TimeInterval = 1.5) throws {
-        if let why = blockedChannel(channelID, address: device.addressString) {
+        if let why = blockedChannel(channelID, device: device) {
             throw ProbeError("refusing channel \(channelID): \(why)")
         }
         guard allowedChannels.contains(channelID) || anyChannel else {

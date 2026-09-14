@@ -1,19 +1,31 @@
-# SoundcoreBridge
+<p align="center">
+  <img src="assets/icon.png" width="128" alt="SoundcoreBridge">
+</p>
 
-Native macOS control for Soundcore headphones — menu bar app and CLI. Talks to
-the headset directly over its vendor Bluetooth RFCOMM channel. No companion
-phone app, no cloud service, no audio proxy.
+<h1 align="center">SoundcoreBridge</h1>
 
-Anker ships companion apps for Android and iOS only. This fills the gap on the
+<p align="center">
+  Native macOS control for Soundcore headphones — menu bar app and CLI.<br>
+  No phone app, no cloud, no audio proxy.
+</p>
+
+---
+
+Talks to the headset directly over its vendor Bluetooth RFCOMM channel. Anker ships companion apps for Android and iOS only. This fills the gap on the
 Mac.
 
-## Status
+## Device support
 
-| | |
-|---|---|
-| **Verified hardware** | Soundcore Space 2 (D1402), firmware 01.59 |
-| **Other Soundcore models** | Detected, battery + firmware only, read-only |
-| **Platform** | macOS 13+ |
+| Device | Model | Status |
+|---|---|---|
+| Soundcore Space 2 | D1402 | **Verified** — full control |
+| Other Soundcore models | — | Detected; battery + firmware only, read-only |
+
+Requires macOS 13 or later.
+
+Have a different Soundcore device? Capturing it is straightforward and the
+result is a profile, not new protocol code — see
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 Every offset, command and EQ preset in this repository was confirmed against
 real hardware — nothing is guessed. See [docs/protocol-map.md](docs/protocol-map.md).
@@ -94,6 +106,17 @@ with the app force-closed.
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
+
+## Disclaimer
+
+This is an **unofficial** project with no affiliation to Anker Innovations or
+Soundcore. "Soundcore" and "Anker" are trademarks of their respective owners
+and are used here only to describe compatibility.
+
+The protocol was determined by observing traffic to hardware the author owns —
+lawful reverse engineering for interoperability. Firmware-update channels are
+deliberately blocked and no firmware is modified, but this software talks to
+your headphones over an undocumented protocol and comes with no warranty.
 
 ## Credits
 
