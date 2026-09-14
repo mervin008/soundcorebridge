@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Build and self-test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -c release
+      # The self-test runs entirely offline: frame codec, stream parser,
+      # EQ preset table and device profiles. No headset required.
+      - name: Self-test
+        run: swift run -c release soundcorectl selftest

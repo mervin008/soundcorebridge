@@ -1,0 +1,22 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+  - type: textarea
+    id: log
+    attributes:
+      label: Anything in /tmp/soundcorebridge.log?
+      render: text
