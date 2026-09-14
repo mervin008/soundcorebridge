@@ -1,51 +1,60 @@
 <p align="center">
-  <img src="assets/icon.png" width="128" alt="SoundcoreBridge">
+  <img src="assets/icon.png" width="104" alt="SoundcoreBridge">
 </p>
 
 <h1 align="center">SoundcoreBridge</h1>
 
 <p align="center">
-  Native macOS control for Soundcore headphones.<br>
-  Menu bar app and CLI — no phone app, no cloud, no audio proxy.
+  <code>Soundcore headphones, controlled from macOS</code><br>
+  <sub>Menu bar app and CLI · verified on D1402 · fw 01.59</sub>
 </p>
 
 <p align="center">
-  <img src="docs/img/panel-anc.png" width="380" alt="The SoundcoreBridge menu bar panel">
+  <img src="docs/img/panel-anc.png" width="360" alt="The SoundcoreBridge menu bar panel">
 </p>
 
 ---
 
-## Why
+Anker ships the Soundcore app for phones only. This talks to the headset
+directly over its own Bluetooth protocol — every byte worked out by watching
+real traffic, and checked by reading the value back off the hardware.
 
-Anker ships the Soundcore app for Android and iOS only. Plug the headphones
-into a Mac and you lose ANC control, the equaliser, and any idea of the battery
-level — even though the headset is perfectly happy to be told what to do over
-Bluetooth.
+```
+08 EE 00 00   00   06 81   10 00   00 5F 02 00 00 01   EF
+└─ magic ─┘   seq  └cmd┘   └len┘   └───  payload  ──┘  sum
+```
 
-SoundcoreBridge talks to it directly.
+Sixteen bytes on RFCOMM channel 30 switch noise cancelling on. The headset
+ignores every one of them until a handshake runs first.
 
-## ✨ Features
+## §01 · What it does
 
-- **Noise control** — Noise Cancelling, Transparency, Normal, with ANC strength 1–5
-- **Equaliser** — all 22 factory presets plus a custom 8-band curve (±6 dB)
-- **Battery, firmware and multipoint** status at a glance
-- **Live EQ curve**, tinted by the active listening mode
-- **CLI** for scripting and protocol work
+| | |
+|---|---|
+| **Noise control** <br> `06:81` | Noise Cancelling, Transparency and Normal, plus ANC strength 1–5 — which the official app reads back incorrectly, showing its own cached value instead of the headset's |
+| **Equaliser** <br> `03:87` · 53-byte frame | All 22 factory presets and a custom 8-band curve at ±6 dB, including the DSP compensation tail the firmware expects |
+| **Device state** <br> `01:01` · 103 bytes | Battery, firmware, model and multipoint host count, decoded through a per-model profile |
+| **Command line** <br> `soundcorectl` | Scriptable control, plus the probe, sweep and diff tools used to map the protocol |
+| **Safe by default** <br> ch 12 · ch 13 blocked | Firmware-flashing channels refused by service identity, so the guard holds on every device |
 
-Everything here was confirmed against real hardware. Nothing is guessed.
+## §02 · The state blob
 
-## 🎧 Supported devices
+`01:01` returns 103 bytes describing the whole headset. Confirmed offsets:
 
-| Device | Model | Status |
-|---|---|---|
-| Soundcore Space 2 | D1402 | ✅ Verified — full control |
-| Other Soundcore models | — | 🔍 Detected — battery + firmware, read-only |
+| Offset | Field |
+|---|---|
+| `0` | Battery, 0–9 — percent is `(level + 1) × 10` |
+| `2–6` | Firmware, ASCII |
+| `7–10` | Model code, ASCII |
+| `23` | EQ preset id |
+| `25–32` | EQ bands, `120` = 0 dB, 10 units per dB |
+| `71` | ANC mode — `00` NC, `01` Transparency, `02` Normal |
+| `72` | ANC level, high nibble |
+| `91` | Connected hosts |
 
-Unknown models stay read-only on purpose: field offsets differ between models,
-and writing guessed offsets to unverified hardware is how devices end up in
-strange states.
+Everything else is still unmapped. Full detail: [docs/protocol-map.md](docs/protocol-map.md).
 
-## 📥 Install
+## §03 · Install
 
 ```sh
 brew tap mervin008/tap
@@ -53,73 +62,60 @@ brew trust mervin008/tap
 brew install --cask --no-quarantine mervin008/tap/soundcorebridge
 ```
 
-Homebrew requires third-party casks to be trusted explicitly, hence the middle
-step. The app is ad-hoc signed rather than notarised, which is what
-`--no-quarantine` handles.
+Homebrew refuses untrusted third-party casks, so the middle line is required.
+The app is ad-hoc signed rather than notarised, which is what `--no-quarantine`
+handles. macOS 13 or later. Or take the zip from
+[releases](https://github.com/mervin008/soundcorebridge/releases/latest).
 
-Or grab the zip from [releases](https://github.com/mervin008/soundcorebridge/releases/latest).
-Requires macOS 13 or later.
-
-### Build from source
+**Build it yourself**
 
 ```sh
 git clone https://github.com/mervin008/soundcorebridge
 cd soundcorebridge && ./make-app.sh
-open build/SoundcoreBridge.app
 ```
 
-## 🚀 CLI
+**Drive it from a script**
 
 ```sh
 soundcorectl status                     # battery, firmware, ANC, EQ
-soundcorectl anc nc --level 5           # nc | transparency | normal
-soundcorectl eq rock                    # any of the 22 presets
+soundcorectl anc nc --level 5
+soundcorectl eq rock
 soundcorectl eq "6,4,2,0,0,-2,-4,-6"    # custom curve, dB per band
-soundcorectl selftest                   # offline tests, no headset needed
+soundcorectl selftest                   # offline, no headset needed
 ```
 
-Protocol tools: `sdp`, `probe`, `sweep`, `watch`, `snap`, `diffs`, `send`.
+## §04 · Compatibility
 
-## 🔬 How it works
+| Device | Model | Status |
+|---|---|---|
+| Soundcore Space 2 | `D1402` | ✅ Verified — full control |
+| Other Soundcore models | `—` | Detected — battery & firmware, read-only |
 
-```
-RFCOMM ch 30  ->  frame codec (08EE/09FF + checksum)  ->  device profile  ->  UI
-```
+Unknown models stay read-only on purpose. Field offsets differ between models,
+and writing guessed offsets to unverified hardware is how devices end up in
+strange states.
 
-The frame format is the same across Soundcore models. What changes per model is
-where fields sit in the state blob, which value means which sound mode, and how
-many EQ bands there are — so adding a device is a profile, not new protocol code.
+Adding a device is a `DeviceProfile`, not new protocol code — the frame format
+is identical across the range. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-Two things cost real time to discover:
+## §05 · Two things that cost a day each
 
-- **Writes are silently ignored until a handshake runs.** The device answers
-  reads happily and discards every write until the sequence in `Control.swift`
-  completes.
-- **The first `openRFCOMMChannelAsync` in a process always fails.** It primes
-  IOBluetooth's run-loop source and the callback never arrives; a retry works.
-  Failed attempts must never be closed, or the close kills the next channel.
+**Writes are silently discarded until a handshake runs.** The device answers
+reads happily and bins every write, with no error, until the sequence in
+`Control.swift` completes.
 
-Full map: [docs/protocol-map.md](docs/protocol-map.md).
+**The first `openRFCOMMChannelAsync` in a process always fails.** It primes
+IOBluetooth's run-loop source and the callback never arrives; a retry works.
+Failed attempts must never be closed, or the close tears down the next channel.
 
-## 🤝 Contributing
-
-Got a Soundcore device that isn't supported? Capture it and it becomes a
-profile — see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Issues and PRs welcome.
-
-## 🙏 Credits
-
-SoundcoreBridge stands on the work of:
+## §06 · Credits
 
 - **[SonyBridge](https://github.com/AmitRajput-Dev/SonyBridge)** by AmitRajput-Dev — the model for what a native desktop bridge should be, and the project that proved macOS RFCOMM control was possible at all
 - **[OpenSCQ30](https://github.com/Oppzippy/OpenSCQ30)** by Oppzippy — the reference Soundcore implementation; its capability-driven device model shaped the profile layer here
 - **[SoundcoreManager](https://github.com/gmallios/SoundcoreManager)** by gmallios — earlier desktop Soundcore client and protocol reference
 
-## ⚠️ Disclaimer
+---
 
-Unofficial project, not affiliated with Anker or Soundcore. Firmware-update
+<sub>Unofficial project, not affiliated with Anker or Soundcore. Firmware-update
 channels are deliberately blocked, but this talks to your headphones over an
-undocumented protocol — no warranty.
-
-## 📄 License
-
-[MIT](LICENSE)
+undocumented protocol — no warranty. <a href="LICENSE">MIT</a>.</sub>
