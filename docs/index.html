@@ -69,12 +69,18 @@ a{color:inherit;text-decoration:none}
 nav{position:sticky;top:0;z-index:50;background:rgba(7,15,19,.72);
     backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
     border-bottom:1px solid var(--line)}
-nav .wrap{display:flex;align-items:center;height:62px;gap:22px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.08em;font-size:12.5px}
-.brand img{width:24px;height:24px;border-radius:7px}
+nav .wrap{display:flex;align-items:center;height:70px;gap:26px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:600;letter-spacing:-.015em;font-size:16px}
+.brand img{width:28px;height:28px;border-radius:8px}
 nav .sp{margin-left:auto}
-nav a.nl{font-size:12.5px;letter-spacing:.09em;font-weight:600;color:var(--muted)}
-nav a.nl:hover{color:var(--theme)}
+nav a.nl{font-size:14.5px;font-weight:500;color:var(--muted)}
+nav a.nl:hover{color:var(--text)}
+.ghbtn{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;
+       color:var(--muted);border:1px solid var(--line-2);border-radius:9px;padding:7px 13px;
+       transition:.22s var(--ease)}
+.ghbtn:hover{color:var(--text);border-color:var(--theme)}
+.nav-cta{padding:9px 18px;font-size:14px;box-shadow:none}
+.nav-cta:hover{transform:none;box-shadow:0 10px 26px -12px rgba(var(--theme-rgb),.8)}
 
 /* hero */
 .hero{padding:88px 0 96px}
@@ -204,12 +210,33 @@ pre{background:#060c10;border:1px solid var(--line);border-radius:13px;padding:1
 .copy:hover{color:var(--text);border-color:var(--theme)}
 .c{color:var(--faint)}
 
+.plats{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:26px;text-align:left}
+.plat{border:1px solid var(--line);border-radius:13px;padding:15px 17px;background:rgba(255,255,255,.02)}
+.plat.on{border-color:var(--theme);background:rgba(var(--theme-rgb),.07)}
+.plat .pn{display:block;font-weight:600;font-size:15px}
+.plat .ps{display:block;font-size:12.5px;color:var(--faint);margin-top:3px}
+.plat.on .ps{color:var(--theme)}
+
 ul.credits{list-style:none;padding:0;margin:0;display:grid;gap:14px}
 ul.credits li{color:var(--muted);font-size:15.5px}
 ul.credits a{color:var(--text);font-weight:600;border-bottom:1px solid var(--line-2)}
 ul.credits a:hover{color:var(--theme);border-color:var(--theme)}
 
-footer{border-top:1px solid var(--line);padding:38px 0 64px;color:var(--faint);font-size:13.5px}
+footer{border-top:1px solid var(--line);padding:56px 0 70px;color:var(--faint);font-size:14px}
+.fgrid{display:grid;grid-template-columns:1.7fr 1fr 1fr;gap:38px;margin-bottom:38px}
+.fbrand p{color:var(--faint);font-size:14px;margin:16px 0 0;max-width:34em}
+.fbrand a{color:var(--muted)}
+.fbrand a:hover{color:var(--theme)}
+.foss{display:flex;align-items:center;gap:8px;color:var(--muted)!important;font-weight:500}
+.pipdot{width:7px;height:7px;border-radius:50%;background:var(--theme);
+        box-shadow:0 0 10px var(--theme)}
+.flinks{display:flex;flex-direction:column;gap:11px}
+.flinks a{color:var(--muted);font-size:14px}
+.flinks a:hover{color:var(--theme)}
+.disclaimer{border-top:1px solid var(--line);padding-top:26px;margin:0;color:var(--faint);
+            font-size:13px;line-height:1.75;max-width:70em}
+.disclaimer a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+@media (max-width:820px){.fgrid{grid-template-columns:1fr;gap:30px}}
 
 .rv{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
 .rv.in{opacity:1;transform:none}
@@ -226,8 +253,9 @@ footer{border-top:1px solid var(--line);padding:38px 0 64px;color:var(--faint);f
   nav a.nl{display:none}
 }
 @media (max-width:620px){
-  .grid4{grid-template-columns:1fr}
+  .grid4,.plats{grid-template-columns:1fr}
   section{padding:72px 0}
+  .ghbtn,.nav-cta{padding:7px 12px;font-size:13px}
   .tag.t1{left:0}.tag.t2{right:0}.tag.t3{left:0}
   .cta-band{padding:44px 20px}
 }
@@ -254,11 +282,16 @@ footer{border-top:1px solid var(--line);padding:38px 0 64px;color:var(--faint);f
 
 <nav>
   <div class="wrap">
-    <a class="brand" href="#top"><img src="icon.png" alt="">SOUNDCOREBRIDGE</a>
+    <a class="brand" href="#top"><img src="icon.png" alt="">SoundcoreBridge</a>
     <span class="sp"></span>
-    <a class="nl" href="#capabilities">CAPABILITIES</a>
-    <a class="nl" href="#install">INSTALL</a>
-    <a class="nl" href="https://github.com/mervin008/soundcorebridge">GITHUB</a>
+    <a class="nl" href="#capabilities">Capabilities</a>
+    <a class="nl" href="#devices">Devices</a>
+    <a class="nl" href="#install">Install</a>
+    <a class="ghbtn" href="https://github.com/mervin008/soundcorebridge">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.19c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>
+      Star
+    </a>
+    <a class="btn nav-cta" href="#install">Install</a>
   </div>
 </nav>
 
@@ -334,14 +367,15 @@ battery 90%&nbsp;&nbsp;fw 01.59&nbsp;&nbsp;ANC level 4/5<br><br>
   </div>
 </section>
 
-<section data-theme="38,208,166">
+<section id="devices" data-theme="38,208,166">
   <div class="wrap rv">
     <p class="lbl">03 — COMPATIBILITY</p>
-    <h2>One model,<br>done properly.</h2>
-    <p class="sublead">Only the Space 2 has been tested against real hardware, so it's the only one that gets write access. Everything else stays read-only rather than guessing.</p>
+    <h2>Verified first,<br>supported after.</h2>
+    <p class="sublead">More models are being added. A device gets write access once its behaviour has been confirmed on real hardware — until then it stays read-only rather than guessing, because wrong offsets written to headphones are how they end up in odd states.</p>
     <div class="rows">
       <div class="rw"><span>Soundcore Space 2</span><span class="yes">FULL CONTROL</span></div>
-      <div class="rw"><span>Other Soundcore models</span><span class="r">BATTERY &amp; FIRMWARE</span></div>
+      <div class="rw"><span>Space One · Q45 · Life series</span><span class="r">IN PROGRESS</span></div>
+      <div class="rw"><span>Any other Soundcore model</span><span class="r">DETECTED · READ-ONLY</span></div>
     </div>
     <p class="sublead" style="margin-top:26px;margin-bottom:0">Got a different model? <a href="https://github.com/mervin008/soundcorebridge/issues" style="color:var(--theme)">Open an issue</a> — it's mostly a matter of confirming what it does.</p>
   </div>
@@ -360,6 +394,12 @@ battery 90%&nbsp;&nbsp;fw 01.59&nbsp;&nbsp;ANC level 4/5<br><br>
 <span class="c">$</span> brew install --cask --no-quarantine mervin008/tap/soundcorebridge</pre>
       </div>
       <p style="margin-top:22px;font-size:14.5px">Homebrew asks you to trust third-party casks, hence the middle line. Needs macOS 13 or later — or take the zip from <a href="https://github.com/mervin008/soundcorebridge/releases/latest" style="color:var(--theme)">releases</a>.</p>
+      <div class="plats">
+        <div class="plat on"><span class="pn">macOS</span><span class="ps">Available now</span></div>
+        <div class="plat"><span class="pn">Windows</span><span class="ps">Coming soon</span></div>
+        <div class="plat"><span class="pn">Linux</span><span class="ps">Coming soon</span></div>
+      </div>
+      <p style="font-size:13.5px;color:var(--faint);margin-top:16px">The protocol layer is platform-independent; only the Bluetooth transport is macOS-specific, so the other two are a port rather than a rewrite.</p>
     </div>
   </div>
 </section>
@@ -376,7 +416,36 @@ battery 90%&nbsp;&nbsp;fw 01.59&nbsp;&nbsp;ANC level 4/5<br><br>
   </div>
 </section>
 
-<footer><div class="wrap">Not affiliated with Anker or Soundcore. <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE" style="color:var(--muted)">MIT licensed</a>.</div></footer>
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div class="fbrand">
+        <a class="brand" href="#top"><img src="icon.png" alt="">SoundcoreBridge</a>
+        <p>Built on <a href="https://github.com/AmitRajput-Dev/SonyBridge">SonyBridge</a> by
+        AmitRajput-Dev, <a href="https://github.com/Oppzippy/OpenSCQ30">OpenSCQ30</a> by Oppzippy,
+        and <a href="https://github.com/gmallios/SoundcoreManager">SoundcoreManager</a> by gmallios.</p>
+        <p class="foss"><span class="pipdot"></span>Free and open source · MIT</p>
+      </div>
+      <div class="flinks">
+        <a href="#capabilities">Capabilities</a>
+        <a href="#devices">Devices</a>
+        <a href="#install">Install</a>
+      </div>
+      <div class="flinks">
+        <a href="https://github.com/mervin008/soundcorebridge">GitHub</a>
+        <a href="https://github.com/mervin008/soundcorebridge/releases">Releases</a>
+        <a href="https://github.com/mervin008/soundcorebridge/issues/new/choose">Report a device</a>
+        <a href="https://github.com/sponsors/mervin008">Sponsor</a>
+      </div>
+    </div>
+    <p class="disclaimer">
+      Not affiliated with, endorsed by, or connected to Anker or Soundcore. SoundcoreBridge talks
+      to your headphones using a reverse-engineered protocol, for interoperability. Firmware-update
+      channels are deliberately blocked, but no warranty is given — use at your own risk.
+      · <a href="https://github.com/mervin008/soundcorebridge/blob/main/LICENSE">MIT licensed</a>.
+    </p>
+  </div>
+</footer>
 
 <div class="toast" id="toast">Copied</div>
 <script>
