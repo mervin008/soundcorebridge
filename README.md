@@ -80,6 +80,13 @@ watching real traffic. If you're curious about the details, they're in
 - **[OpenSCQ30](https://github.com/Oppzippy/OpenSCQ30)** by Oppzippy — the reference Soundcore implementation
 - **[SoundcoreManager](https://github.com/gmallios/SoundcoreManager)** by gmallios — earlier desktop client and protocol reference
 
+## Co-engineered with Claude
+
+The protocol was reverse engineered and this app built in collaboration with
+[Claude](https://claude.com/claude-code) — packet captures decoded, the macOS
+Bluetooth transport written and debugged, and every value verified against real
+hardware rather than assumed.
+
 ## Contributing
 
 Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
