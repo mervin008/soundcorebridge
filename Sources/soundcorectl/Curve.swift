@@ -40,8 +40,8 @@ private func appendSpline(_ path: inout Path, _ pts: [CGPoint]) {
 /// the headset is doing at a glance.
 ///
 /// Each tint is appearance-aware: a single fixed colour is either washed out on
-/// a light background or muddy on a dark one. "Off" especially — a mid grey was
-/// nearly invisible in both.
+/// a light background or muddy on a dark one. Normal uses a warm amber so it
+/// reads as an active listening mode instead of a disabled state.
 func modeTint(_ mode: UInt8?, connected: Bool) -> Color {
     guard connected else {
         return adaptive(light: NSColor(white: 0.42, alpha: 1), dark: NSColor(white: 0.62, alpha: 1))
@@ -53,9 +53,9 @@ func modeTint(_ mode: UInt8?, connected: Bool) -> Color {
     case 0x01:  // ambient
         return adaptive(light: NSColor(srgbRed: 0.00, green: 0.55, blue: 0.42, alpha: 1),
                         dark:  NSColor(srgbRed: 0.20, green: 0.87, blue: 0.68, alpha: 1))
-    case 0x02:  // off
-        return adaptive(light: NSColor(srgbRed: 0.30, green: 0.33, blue: 0.40, alpha: 1),
-                        dark:  NSColor(srgbRed: 0.80, green: 0.83, blue: 0.89, alpha: 1))
+    case 0x02:  // normal
+        return adaptive(light: NSColor(srgbRed: 0.76, green: 0.34, blue: 0.08, alpha: 1),
+                        dark:  NSColor(srgbRed: 1.00, green: 0.64, blue: 0.28, alpha: 1))
     default:
         return adaptive(light: NSColor(white: 0.40, alpha: 1), dark: NSColor(white: 0.70, alpha: 1))
     }
