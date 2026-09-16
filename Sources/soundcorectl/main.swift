@@ -51,6 +51,7 @@ let channel = UInt8(clamping: args.int("channel", 30))
 let allowWrites = args.bool("allow-writes")
 let showRaw = args.bool("raw")
 var collected: [Packet] = []
+var connectedDeviceName = ""
 
 /// Ctrl-C must still tear the channels down — see RFCOMMLink.close().
 var activeLink: RFCOMMLink?
@@ -61,6 +62,7 @@ signal(SIGINT) { _ in
 
 func connect() throws -> RFCOMMLink {
     let device = try RFCOMMLink.find(address: args.str("device"))
+    connectedDeviceName = device.name ?? ""
     log("device   \(device.name ?? "?")  [\(device.addressString ?? "?")]")
     log("channel  \(channel)")
     let link = RFCOMMLink(device: device)
@@ -75,6 +77,28 @@ func connect() throws -> RFCOMMLink {
     try link.open(channelID: channel)
     log("channel open  MTU=\(link.mtu)\n")
     return link
+}
+
+/// Identify a device using only the read-only state request. All ordinary CLI
+/// control paths call this before selecting a profile-specific write handshake.
+func identify(_ link: RFCOMMLink) throws -> (DeviceProfile, DeviceState) {
+    var result: (DeviceProfile, DeviceState)?
+    let previousHandler = link.onPacket
+    link.onPacket = { packet in
+        previousHandler?(packet)
+        guard packet.cmd == Command(0x01, 0x01), packet.checksumOK else { return }
+        let profile = DeviceRegistry.resolve(state: packet.payload, bluetoothName: connectedDeviceName)
+        if let state = parseState(packet.payload, profile: profile) {
+            result = (profile, state)
+        }
+    }
+    for _ in 0..<5 {
+        try? link.send(Command(0x01, 0x01))
+        pump(1.2) { result != nil }
+        if result != nil { break }
+    }
+    guard let result else { throw ProbeError("no valid device state returned") }
+    return result
 }
 
 func modeSDP() throws {
@@ -124,8 +148,9 @@ func modeProbe() throws {
     let link = try connect()
     defer { link.close() }
     if args.bool("handshake") {
+        let (profile, _) = try identify(link)
         log("handshake …")
-        try handshake(link)
+        try handshake(link, profile: profile)
     }
     let cmd = Command(args.str("cmd") ?? "01:01") ?? Command(0x01, 0x01)
     let payload = args.str("payload").flatMap { parseHex($0) } ?? []
@@ -312,12 +337,14 @@ func modeANC() throws {
     let link = try connect()
     defer { link.close() }
 
+    let (profile, _) = try identify(link)
     log("handshake …")
-    try handshake(link)
+    try handshake(link, profile: profile)
 
+    let packet = try ancWrite(profile: profile, mode: mode, level: level)
     let payload = ancPayload(mode, level: level)
     log("-> 06:81  \(hex(payload))   (\(mode.label)\(mode == .noiseCancelling ? ", level \(level)" : ""))")
-    try link.send(Command(0x06, 0x81), payload: payload)
+    try link.send(packet)
     pump(1.5)
 
     // Read it back.
@@ -366,13 +393,14 @@ func modeEQ() throws {
 
     let link = try connect()
     defer { link.close() }
+    let (profile, _) = try identify(link)
     log("handshake …")
-    try handshake(link)
+    try handshake(link, profile: profile)
 
-    let payload = eqPayload(id: id, bands: bands)
+    let packet = try eqWrite(profile: profile, id: id, bands: bands)
     log("-> 03:87  preset \(hex(id, separator: "")) bands \(hex(bands))")
     log("   (\(bands.map { String(format: "%+.1f", eqDecibels($0)) }.joined(separator: " ")) dB)")
-    try link.send(Command(0x03, 0x87), payload: payload)
+    try link.send(packet)
     pump(1.5)
 
     var got: [UInt8]?
@@ -397,6 +425,8 @@ func modeStatus() throws {
     let link = try connect()
     defer { link.close() }
     var st: DeviceState?
+    let (_, initialState) = try identify(link)
+    st = initialState
     link.onPacket = { p in
         if p.cmd == Command(0x01, 0x01),
            let s = parseState(p.payload, profile: DeviceRegistry.resolve(state: p.payload, bluetoothName: "")) { st = s }
@@ -426,12 +456,14 @@ func modeAppTest() throws {
     let link = try connect()
     defer { link.close() }
     var st: DeviceState?
+    let (profile, initialState) = try identify(link)
+    st = initialState
     link.onPacket = { p in
         if p.cmd == Command(0x01, 0x01),
            let s = parseState(p.payload, profile: DeviceRegistry.resolve(state: p.payload, bluetoothName: "")) { st = s }
     }
     log("handshake …")
-    try handshake(link)
+    try handshake(link, profile: profile)
 
     func readBack(_ what: String) {
         st = nil
@@ -450,15 +482,15 @@ func modeAppTest() throws {
     readBack("initial")
 
     log("send EQ bass")
-    try link.send(Command(0x03, 0x87), payload: eqPayload(id: eqPresets["bassbooster"]!.id, bands: eqPresets["bassbooster"]!.bands))
+    try link.send(eqWrite(profile: profile, id: eqPresets["bassbooster"]!.id, bands: eqPresets["bassbooster"]!.bands))
     pump(1.2); readBack("after bass")
 
     log("send EQ flat")
-    try link.send(Command(0x03, 0x87), payload: eqPayload(id: eqPresets["flat"]!.id, bands: eqPresets["flat"]!.bands))
+    try link.send(eqWrite(profile: profile, id: eqPresets["flat"]!.id, bands: eqPresets["flat"]!.bands))
     pump(1.2); readBack("after flat")
 
     log("send ANC transparency")
-    try link.send(Command(0x06, 0x81), payload: ancPayload(.transparency, level: 5))
+    try link.send(ancWrite(profile: profile, mode: .transparency, level: 5))
     pump(1.2); readBack("after transparency")
 }
 

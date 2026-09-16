@@ -109,6 +109,14 @@ final class DeviceController: ObservableObject {
     // MARK: commands
 
     func setANC(_ mode: ANCMode, level: Int) {
+        let packet: [UInt8]
+        do {
+            guard connected else { throw ProbeError("device is not connected") }
+            packet = try ancWrite(profile: profile, mode: mode, level: UInt8(clamping: level))
+        } catch {
+            applog("refused ANC write: \(error)")
+            return
+        }
         ui {
             self.requestedLevel = level
             if var s = self.state {
@@ -118,11 +126,18 @@ final class DeviceController: ObservableObject {
             }
         }
         applog("setANC \(mode.label) level \(level)")
-        enqueue(Frame.encode(Command(0x06, 0x81),
-                             payload: ancPayload(mode, level: UInt8(clamping: level))))
+        enqueue(packet)
     }
 
     func setEQ(id: [UInt8], bands: [UInt8]) {
+        let packet: [UInt8]
+        do {
+            guard connected else { throw ProbeError("device is not connected") }
+            packet = try eqWrite(profile: profile, id: id, bands: bands)
+        } catch {
+            applog("refused EQ write: \(error)")
+            return
+        }
         ui {
             if var s = self.state {
                 s.eqPreset = id.first
@@ -131,7 +146,7 @@ final class DeviceController: ObservableObject {
             }
         }
         applog("setEQ id \(hex(id)) bands \(hex(bands))")
-        enqueue(Frame.encode(Command(0x03, 0x87), payload: eqPayload(id: id, bands: bands)))
+        enqueue(packet)
     }
 
     func refresh() {
@@ -154,7 +169,12 @@ final class DeviceController: ObservableObject {
             }
 
             let rawName = device.name ?? "Soundcore Headset"
-            ui { self.deviceName = rawName }
+            ui {
+                self.deviceName = rawName
+                self.profile = .unknown
+                self.state = nil
+                self.connected = false
+            }
             let link = RFCOMMLink(device: device)
             applog("opening channel 30 on \(device.addressString ?? "?") (\(rawName))")
             ui { self.status = "Connecting to \(rawName)…" }
@@ -172,12 +192,14 @@ final class DeviceController: ObservableObject {
                 continue
             }
 
+            var identifiedProfile: DeviceProfile?
             link.onPacket = { [weak self] packet in
                 guard let self else { return }
-                if packet.cmd == Command(0x01, 0x01) {
+                if packet.cmd == Command(0x01, 0x01), packet.checksumOK {
                     let resolved = DeviceRegistry.resolve(state: packet.payload,
-                                                          bluetoothName: self.deviceName)
+                                                          bluetoothName: rawName)
                     guard let s = parseState(packet.payload, profile: resolved) else { return }
+                    identifiedProfile = resolved
                     if resolved.modelCode != self.profile.modelCode {
                         applog("device profile: \(resolved.displayName)")
                     }
@@ -186,9 +208,47 @@ final class DeviceController: ObservableObject {
                 }
             }
 
-            ui { self.connected = true; self.status = "Connected" }
-            applog("channel open — handshaking")
-            do { try handshake(link) } catch { applog("HANDSHAKE FAILED: \(error)") }
+            ui { self.status = "Identifying \(rawName)…" }
+            for _ in 0..<4 {
+                try? link.send(Command(0x01, 0x01))
+                pump(1.2) { identifiedProfile != nil }
+                if identifiedProfile != nil { break }
+            }
+
+            guard let identifiedProfile else {
+                applog("IDENTIFICATION FAILED: no valid state response")
+                link.close()
+                ui {
+                    self.connected = false
+                    self.busy = false
+                    self.status = "Could not identify this device"
+                }
+                pump(3)
+                continue
+            }
+
+            if identifiedProfile.allowsWrites {
+                applog("device identified — running verified handshake")
+                do {
+                    try handshake(link, profile: identifiedProfile)
+                } catch {
+                    applog("HANDSHAKE FAILED: \(error)")
+                    link.close()
+                    ui {
+                        self.connected = false
+                        self.busy = false
+                        self.status = "Control handshake failed"
+                    }
+                    pump(3)
+                    continue
+                }
+            } else {
+                applog("unverified model — keeping connection read-only")
+            }
+            ui {
+                self.connected = true
+                self.status = identifiedProfile.allowsWrites ? "Connected" : "Connected — read only"
+            }
             try? link.send(Command(0x01, 0x01))
 
             var lastPoll = Date()
@@ -217,7 +277,13 @@ final class DeviceController: ObservableObject {
 
             applog("link dropped (wasClosed=\(link.wasClosed)) — reconnecting")
             link.close()
-            ui { self.connected = false; self.busy = false; self.status = "Reconnecting…" }
+            ui {
+                self.connected = false
+                self.busy = false
+                self.profile = .unknown
+                self.state = nil
+                self.status = "Reconnecting…"
+            }
             pump(2)
         }
     }
@@ -313,9 +379,17 @@ struct MenuContent: View {
         VStack(spacing: 12) {
             headerCard
 
-            noiseControlCard
+            if dev.profile.supports(.soundMode) {
+                noiseControlCard
+            }
 
-            equaliserCard
+            if dev.profile.supports(.equaliser) {
+                equaliserCard
+            }
+
+            if dev.connected, dev.state != nil, !dev.profile.allowsWrites {
+                readOnlyCard
+            }
 
             footerActions
         }
@@ -328,6 +402,25 @@ struct MenuContent: View {
         .onChange(of: dev.state?.eqBands) { _ in
             if !isEditing { syncEditorBands() }
         }
+    }
+
+    private var readOnlyCard: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "lock.shield")
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Read-only device")
+                    .font(.subheadline.weight(.semibold))
+                Text("Battery and firmware are available. Controls stay locked until this exact model is verified on real hardware.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
     }
 
     // MARK: - Header Card

@@ -17,9 +17,11 @@ soundcorectl sdp
 ## Adding support for another Soundcore model
 
 Most of the work is confirming what the device actually does, not writing code.
-The frame format is the same across the range, so a new model is a
-`DeviceProfile` in `Sources/soundcorectl/DeviceProfile.swift` — field offsets,
-which value means which sound mode, and how many EQ bands there are.
+A new model starts with a `DeviceProfile` in
+`Sources/soundcorectl/DeviceProfile.swift`: its reported model code, readable
+state fields, verified capabilities, transport, handshake and command format.
+Do not assume another model uses the Space 2 transport or packet layouts merely
+because its Bluetooth name looks similar.
 
 `docs/DEVELOPMENT.md` explains how to capture that from a phone.
 

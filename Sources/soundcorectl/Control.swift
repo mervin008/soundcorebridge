@@ -1,24 +1,65 @@
 import Foundation
 
-/// The Soundcore app performs this exchange immediately after connecting.
-/// Without it the device answers reads but silently discards every write.
-/// Sequence taken verbatim from an Android HCI capture of the official app.
-func handshake(_ link: RFCOMMLink) throws {
-    try link.send(Command(0x01, 0x01));               pump(0.4)
-    try link.send(Command(0x05, 0x01), payload: [1]); pump(0.6)
-    try link.send(Command(0x05, 0x81));               pump(0.2)
-    try link.send(Command(0x05, 0x81));               pump(0.2)
-    try link.send(Command(0x05, 0x81), payload: [1]); pump(0.3)
-    try link.send(Command(0x05, 0x81));               pump(0.4)
-    try link.send(Command(0x18, 0x85), payload: [1]); pump(0.4)
-    try link.send(Command(0x02, 0x86), payload: [1]); pump(0.2)
+enum DeviceControlError: Error, CustomStringConvertible {
+    case unidentifiedModel
+    case unsupportedFeature(DeviceFeature, String)
+
+    var description: String {
+        switch self {
+        case .unidentifiedModel:
+            return "device model has not been verified for writes"
+        case let .unsupportedFeature(feature, model):
+            return "\(model) does not have verified \(feature.rawValue) support"
+        }
+    }
 }
 
-/// Enables Equalizer sound mode in the headset DSP. Without 02:86 [01],
-/// the DSP runs in bypass mode (02:06 reads 00) and stored EQ curves
-/// are not applied to live audio.
-func enableEQ(_ link: RFCOMMLink) throws {
-    try link.send(Command(0x02, 0x86), payload: [0x01])
+/// Performs only the write-unlock sequence verified for the resolved profile.
+/// Callers must identify the device using a read-only state request first.
+func handshake(_ link: RFCOMMLink, profile: DeviceProfile) throws {
+    guard let controlProtocol = profile.controlProtocol else {
+        throw DeviceControlError.unidentifiedModel
+    }
+    switch controlProtocol {
+    case .space2:
+        try link.send(Command(0x01, 0x01));               pump(0.4)
+        try link.send(Command(0x05, 0x01), payload: [1]); pump(0.6)
+        try link.send(Command(0x05, 0x81));               pump(0.2)
+        try link.send(Command(0x05, 0x81));               pump(0.2)
+        try link.send(Command(0x05, 0x81), payload: [1]); pump(0.3)
+        try link.send(Command(0x05, 0x81));               pump(0.4)
+        try link.send(Command(0x18, 0x85), payload: [1]); pump(0.4)
+        try link.send(Command(0x02, 0x86), payload: [1]); pump(0.2)
+    }
+}
+
+func ancWrite(profile: DeviceProfile, mode: ANCMode, level: UInt8) throws -> [UInt8] {
+    guard let controlProtocol = profile.controlProtocol else {
+        throw DeviceControlError.unidentifiedModel
+    }
+    guard profile.supports(.soundMode) else {
+        throw DeviceControlError.unsupportedFeature(.soundMode, profile.displayName)
+    }
+    switch controlProtocol {
+    case .space2:
+        return Frame.encode(Command(0x06, 0x81), payload: ancPayload(mode, level: level))
+    }
+}
+
+func eqWrite(profile: DeviceProfile, id: [UInt8], bands: [UInt8]) throws -> [UInt8] {
+    guard let controlProtocol = profile.controlProtocol else {
+        throw DeviceControlError.unidentifiedModel
+    }
+    guard profile.supports(.equaliser) else {
+        throw DeviceControlError.unsupportedFeature(.equaliser, profile.displayName)
+    }
+    if id == eqCustomID, !profile.supports(.customEQ) {
+        throw DeviceControlError.unsupportedFeature(.customEQ, profile.displayName)
+    }
+    switch controlProtocol {
+    case .space2:
+        return Frame.encode(Command(0x03, 0x87), payload: eqPayload(id: id, bands: bands))
+    }
 }
 
 enum ANCMode: UInt8 {
