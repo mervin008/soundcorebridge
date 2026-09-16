@@ -29,13 +29,14 @@ The project is split into a command-line interface (`soundcorectl`, alias `space
   - Contains exact verified payloads for all 22 factory EQ presets and custom EQ calculation using solved Constant-Q DSP compensation matrices.
 - **`Sources/soundcorectl/RFCOMM.swift`**
   - Low-level wrapper for macOS `IOBluetoothDevice` and `IOBluetoothRFCOMMChannel`.
-  - Manages asynchronous RFCOMM channel opening, retries, write confirmation, and thread run-loop polling.
+  - Orders model-preferred, SDP-advertised, and conservative fallback control channels; manages opening, retries, write confirmation, and thread run-loop polling.
   - Enforces the hard-blocking of risky firmware flashing channels.
 - **`Sources/soundcorectl/MenuBar.swift`**
   - The modern macOS Control Center SwiftUI presentation layer.
   - Features real-time Bézier EQ frequency curve visualization (`EQCurveView`), dynamic device badge, and battery indicators.
   - Integrates the `DeviceController` background thread with reactive UI components using `SoundcoreBridgeAppDelegate` for safe Bluetooth initialization.
   - Hides controls that are not enabled by the resolved device profile.
+  - Lists paired Soundcore devices, remembers the selected Bluetooth address, and reconnects when the selection changes.
 - **`Sources/soundcorectl/DeviceProfile.swift`**
   - Defines verified model identities, readable state fields, capabilities, and the control-protocol family.
   - Keeps unidentified devices read-only; a Bluetooth display name alone never enables writes.
@@ -109,6 +110,7 @@ Querying `01:01` returns a 103-byte payload containing the complete state of the
 The Space 2 implements highly sensitive OTA channels that pose a bricking risk if written to or analyzed unsafely.
 - **Identify before writing**: Ordinary app and CLI controls must resolve the model code from a valid state response before running a handshake or encoding a write. Bluetooth names are discovery hints only.
 - **Capability gate every write**: UI visibility is not a security boundary. All write encoders must reject profiles that lack the corresponding verified feature.
+- **Constrain channel discovery**: Unknown devices may only try the conservative discovery allowlist. Additional channels must come from a reviewed model profile, and advertised OTA/iAP2 services remain blocked regardless.
 - **Blocked Channels**: RFCOMM channels **12** (TOTA) and **13** (BESOTA) are hard-blocked in `RFCOMM.swift` to prevent accidental firmware corruption. Do not remove this restriction.
 - **Apple iAP2 channel**: RFCOMM channel **16** (IOSSPP) is blocked as it is incompatible with our raw frame protocol.
 - **One Control Client Limit**: The headset accepts only one active RFCOMM control connection at a time. If the companion mobile app is open or holding the session, SoundcoreBridge will fail to bind. Releasing the socket on the other host (e.g., turning off Bluetooth on the phone) is required.

@@ -26,7 +26,7 @@ MODES
 
 OPTIONS
   --device <addr>        Bluetooth address (default: first paired Soundcore)
-  --channel <n>          RFCOMM channel (default 30; allowlist \(allowedChannels.sorted()))
+  --channel <n>          RFCOMM channel (default: safe auto-detection; allowlist \(defaultControlChannels))
   --duration <s>         probe: seconds to listen (default 8)
   --groups <hex,…>       sweep: command groups to scan (default 01)
   --timeout <ms>         sweep: wait per command (default 250)
@@ -47,7 +47,8 @@ if CommandLine.arguments.count == 1,
 }
 
 let args = Args(CommandLine.arguments)
-let channel = UInt8(clamping: args.int("channel", 30))
+let requestedChannel = args.str("channel").flatMap { UInt8($0) }
+var channel = requestedChannel ?? defaultControlChannels[0]
 let allowWrites = args.bool("allow-writes")
 let showRaw = args.bool("raw")
 var collected: [Packet] = []
@@ -64,17 +65,28 @@ func connect() throws -> RFCOMMLink {
     let device = try RFCOMMLink.find(address: args.str("device"))
     connectedDeviceName = device.name ?? ""
     log("device   \(device.name ?? "?")  [\(device.addressString ?? "?")]")
+    let link: RFCOMMLink
+    if let requestedChannel {
+        channel = requestedChannel
+        link = RFCOMMLink(device: device)
+        link.anyChannel = args.bool("any-channel")
+        link.verbose = args.bool("verbose")
+        try link.open(channelID: channel)
+    } else {
+        let preferred = DeviceRegistry.profile(bluetoothName: connectedDeviceName)?.rfcommChannels ?? []
+        let opened = try RFCOMMLink.openControl(device: device,
+                                                preferred: preferred,
+                                                verbose: args.bool("verbose"))
+        link = opened.link
+        channel = opened.channel
+    }
     log("channel  \(channel)")
-    let link = RFCOMMLink(device: device)
-    link.anyChannel = args.bool("any-channel")
-    link.verbose = args.bool("verbose")
     link.onPacket = { p in
         collected.append(p)
         log(describe(p))
     }
     if showRaw { link.onRaw = { log("   raw <- \(hex($0))") } }
     activeLink = link
-    try link.open(channelID: channel)
     log("channel open  MTU=\(link.mtu)\n")
     return link
 }
@@ -121,6 +133,7 @@ func modeSDP() throws {
     let device = try RFCOMMLink.find(address: args.str("device"))
     log("=== \(device.name ?? "?")  [\(device.addressString ?? "?")]  connected=\(device.isConnected())")
     let records = (device.services as? [IOBluetoothSDPServiceRecord]) ?? []
+    let profileChannels = DeviceRegistry.profile(bluetoothName: device.name ?? "")?.rfcommChannels ?? []
     guard !records.isEmpty else {
         log("no cached SDP records — connect the headset once, then retry")
         return
@@ -130,7 +143,9 @@ func modeSDP() throws {
         let hasRF = r.getRFCOMMChannelID(&ch) == kIOReturnSuccess
         var note = ""
         if hasRF, let why = blockedChannel(ch, device: device) { note = "  << BLOCKED: \(why)" }
-        else if hasRF, allowedChannels.contains(ch) { note = "  << candidate control channel" }
+        else if hasRF, allowedChannels.contains(ch) || profileChannels.contains(ch) {
+            note = "  << candidate control channel"
+        }
         var classes = "?"
         if let attrs = r.attributes as? [NSNumber: IOBluetoothSDPDataElement],
            let list = attrs[NSNumber(value: 1)] {
