@@ -31,9 +31,49 @@ private struct HoverHighlight: ViewModifier {
     }
 }
 
+private struct PanelButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+private struct PanelSurface: ViewModifier {
+    let tint: Color
+    var radius: CGFloat = 16
+    var elevated = false
+
+    func body(content: Content) -> some View {
+        content
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(tint.opacity(elevated ? 0.10 : 0.035))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), tint.opacity(0.16), Color.black.opacity(0.08)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: tint.opacity(elevated ? 0.13 : 0.05), radius: elevated ? 18 : 8, y: 5)
+    }
+}
+
 extension View {
     func hoverHighlight(active: Bool = false) -> some View {
         modifier(HoverHighlight(active: active))
+    }
+
+    func panelSurface(tint: Color = .clear, radius: CGFloat = 16, elevated: Bool = false) -> some View {
+        modifier(PanelSurface(tint: tint, radius: radius, elevated: elevated))
     }
 }
 
@@ -352,68 +392,93 @@ final class DeviceController: ObservableObject {
 struct EQCurveView: View {
     let bands: [UInt8]
     var tint: Color = .accentColor
+    private let labels = ["100", "200", "400", "800", "1.6k", "3.2k", "6.4k", "12.8k"]
 
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            let padX: CGFloat = 20
-            let usableW = w - padX * 2
-            let step = usableW / 7.0
-            let zeroY = h / 2.0
+        VStack(spacing: 7) {
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let padX: CGFloat = 18
+                let usableW = w - padX * 2
+                let step = usableW / 7.0
+                let zeroY = h / 2.0
 
-            let points: [CGPoint] = (0..<8).map { i in
-                let b = i < bands.count ? bands[i] : 120
-                let dB = eqDecibels(b)
-                let normalized = CGFloat(dB / 6.0)
-                let y = zeroY - normalized * (h / 2.0 - 8)
-                let x = padX + CGFloat(i) * step
-                return CGPoint(x: x, y: y)
-            }
-
-            ZStack {
-                // Background zero reference dashed line
-                Path { path in
-                    path.move(to: CGPoint(x: padX, y: zeroY))
-                    path.addLine(to: CGPoint(x: w - padX, y: zeroY))
+                let points: [CGPoint] = (0..<8).map { i in
+                    let b = i < bands.count ? bands[i] : 120
+                    let dB = eqDecibels(b)
+                    let normalized = CGFloat(dB / 6.0)
+                    let y = zeroY - normalized * (h / 2.0 - 8)
+                    let x = padX + CGFloat(i) * step
+                    return CGPoint(x: x, y: y)
                 }
-                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                .foregroundStyle(.secondary.opacity(0.35))
 
-                // Area under curve gradient
-                smoothSplineAreaPath(points: points, baselineY: h)
-                .fill(
-                    LinearGradient(
-                        colors: [tint.opacity(0.35), tint.opacity(0.02)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                ZStack {
+                    ForEach([CGFloat(0.25), 0.5, 0.75], id: \.self) { fraction in
+                        Path { path in
+                            let y = h * fraction
+                            path.move(to: CGPoint(x: padX, y: y))
+                            path.addLine(to: CGPoint(x: w - padX, y: y))
+                        }
+                        .stroke(
+                            fraction == 0.5 ? Color.secondary.opacity(0.28) : Color.secondary.opacity(0.10),
+                            style: StrokeStyle(lineWidth: 1, dash: fraction == 0.5 ? [4, 4] : [])
+                        )
+                    }
 
-                // Frequency response line
-                smoothSplinePath(points: points)
-                .stroke(
-                    LinearGradient(
-                        colors: [tint, tint.opacity(0.65)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-                )
+                    smoothSplineAreaPath(points: points, baselineY: h)
+                        .fill(
+                            LinearGradient(
+                                colors: [tint.opacity(0.38), tint.opacity(0.015)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
 
-                // Frequency control points
-                ForEach(0..<points.count, id: \.self) { i in
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 5.5, height: 5.5)
-                        .shadow(color: .black.opacity(0.3), radius: 1)
+                    smoothSplinePath(points: points)
+                        .stroke(
+                            LinearGradient(
+                                colors: [tint.opacity(0.75), tint, tint.opacity(0.78)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                            style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
+                        )
+                        .shadow(color: tint.opacity(0.35), radius: 5)
+
+                    ForEach(0..<points.count, id: \.self) { i in
+                        ZStack {
+                            Circle().fill(tint).frame(width: 10, height: 10)
+                            Circle().fill(Color.white).frame(width: 4, height: 4)
+                        }
+                        .shadow(color: tint.opacity(0.45), radius: 3)
                         .position(points[i])
+                    }
+                }
+            }
+            .frame(height: 72)
+
+            HStack(spacing: 0) {
+                ForEach(labels, id: \.self) { label in
+                    Text(label)
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity)
                 }
             }
         }
-        .frame(height: 64)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
+        .padding(.horizontal, 8)
+        .padding(.top, 11)
+        .padding(.bottom, 9)
+        .background(
+            LinearGradient(
+                colors: [tint.opacity(0.09), Color.primary.opacity(0.025)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(tint.opacity(0.13), lineWidth: 1))
     }
 }
 
@@ -432,29 +497,64 @@ struct MenuContent: View {
 
     /// Everything accented in the popover follows the active listening mode.
     private var tint: Color { modeTint(dev.state?.ancMode, connected: dev.connected) }
+    private var battery: Int? {
+        dev.state.map { batteryPercent($0.battery, max: $0.batteryMax) }
+    }
+    private var activeModeTitle: String {
+        guard let raw = dev.state?.ancMode, let mode = ANCMode(rawValue: raw) else { return "Identifying" }
+        return mode.label
+    }
+    private var activePresetKey: String? {
+        guard let id = dev.state?.eqPreset, id != eqCustomID.first else { return nil }
+        return eqPresetOrder.first(where: { eqPresets[$0.key]?.id.first == id })?.key
+    }
+    private var activePresetTitle: String {
+        guard let id = dev.state?.eqPreset else { return "Equaliser" }
+        if id == eqCustomID.first { return "Custom EQ" }
+        guard let key = activePresetKey else { return "Equaliser" }
+        return eqPresetOrder.first(where: { $0.key == key })?.title ?? "Equaliser"
+    }
+    private var quickPresetKeys: [String] {
+        var keys = ["signature", "acoustic", "bassbooster", "bassreducer"]
+        if let activePresetKey, !keys.contains(activePresetKey) {
+            keys[keys.count - 1] = activePresetKey
+        }
+        return keys
+    }
 
     var body: some View {
-        VStack(spacing: 12) {
-            headerCard
+        ZStack {
+            Color(nsColor: .windowBackgroundColor)
 
-            if dev.profile.supports(.soundMode) {
-                noiseControlCard
+            RadialGradient(
+                colors: [tint.opacity(dev.connected ? 0.16 : 0.05), .clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 360
+            )
+
+            VStack(spacing: 12) {
+                headerCard
+
+                if dev.profile.supports(.soundMode) {
+                    noiseControlCard
+                }
+
+                if dev.profile.supports(.equaliser) {
+                    equaliserCard
+                }
+
+                if dev.connected, dev.state != nil, !dev.profile.allowsWrites {
+                    readOnlyCard
+                }
+
+                footerActions
             }
-
-            if dev.profile.supports(.equaliser) {
-                equaliserCard
-            }
-
-            if dev.connected, dev.state != nil, !dev.profile.allowsWrites {
-                readOnlyCard
-            }
-
-            footerActions
+            .padding(14)
         }
-        .padding(14)
         // Width is fixed; height follows the content, so revealing the strength
         // row or the EQ editor grows the popover instead of scrolling Quit away.
-        .frame(width: 410)
+        .frame(width: 424)
         .fixedSize(horizontal: false, vertical: true)
         .onAppear { syncEditorBands() }
         .onChange(of: dev.state?.eqBands) { _ in
@@ -464,8 +564,11 @@ struct MenuContent: View {
 
     private var readOnlyCard: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "lock.shield")
-                .foregroundStyle(.secondary)
+            Image(systemName: "lock.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 30, height: 30)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             VStack(alignment: .leading, spacing: 3) {
                 Text("Read-only device")
                     .font(.subheadline.weight(.semibold))
@@ -476,98 +579,126 @@ struct MenuContent: View {
             }
             Spacer()
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
+        .padding(14)
+        .panelSurface(tint: tint, radius: 15)
     }
 
     // MARK: - Header Card
 
     private var headerCard: some View {
-        HStack(spacing: 12) {
-            // Battery as a ring around the headphones, tinted by the active
-            // listening mode — the badge reads out state, not decoration.
-            ZStack {
-                Circle()
-                    .stroke(Color.primary.opacity(0.10), lineWidth: 3)
-                Circle()
-                    .trim(from: 0, to: max(0.02, CGFloat(dev.state.map { batteryPercent($0.battery, max: $0.batteryMax) } ?? 0) / 100))
-                    .stroke(tint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.45), value: dev.state?.battery)
-                Image(systemName: dev.connected ? "headphones" : "headphones.slash")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(dev.connected ? Color.primary : .secondary)
-            }
-            .frame(width: 40, height: 40)
-            .shadow(color: tint.opacity(dev.connected ? 0.35 : 0), radius: 5)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 13) {
+                ZStack {
+                    Circle()
+                        .stroke(Color.primary.opacity(0.10), lineWidth: 4)
+                    Circle()
+                        .trim(from: 0, to: max(0.025, CGFloat(battery ?? 0) / 100))
+                        .stroke(tint, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeInOut(duration: 0.45), value: battery)
+                    Circle()
+                        .fill(tint.opacity(dev.connected ? 0.12 : 0.04))
+                        .padding(7)
+                    Image(systemName: dev.connected ? "headphones" : "headphones.slash")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(dev.connected ? tint : Color.secondary)
+                }
+                .frame(width: 54, height: 54)
+                .shadow(color: tint.opacity(dev.connected ? 0.28 : 0), radius: 10)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(dev.profile.modelCode.isEmpty ? dev.deviceName : dev.profile.displayName)
-                    .font(.headline)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(dev.connected ? "ACTIVE DEVICE" : "SOUNDCOREBRIDGE")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.25)
+                        .foregroundStyle(tint.opacity(dev.connected ? 0.9 : 0.55))
 
-                if dev.connected, let s = dev.state {
-                    HStack(spacing: 6) {
-                        HStack(spacing: 3) {
-                            Image(systemName: batterySymbol(percent: batteryPercent(s.battery, max: s.batteryMax)))
-                                .foregroundStyle(batteryColor(percent: batteryPercent(s.battery, max: s.batteryMax)))
-                            Text("\(batteryPercent(s.battery, max: s.batteryMax))%")
-                                .fontWeight(.semibold)
-                        }
+                    Text(dev.profile.modelCode.isEmpty ? dev.deviceName : dev.profile.displayName)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .tracking(-0.25)
+                        .lineLimit(1)
 
-                        Text("·").foregroundStyle(.tertiary)
-
-                        Text("Model \(s.model)")
+                    if let state = dev.state {
+                        Text("D\(state.model)  ·  Firmware \(state.firmware)")
+                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
                             .foregroundStyle(.secondary)
-
-                        if s.hostCount > 1 {
-                            Text("·").foregroundStyle(.tertiary)
-                            HStack(spacing: 2) {
-                                Image(systemName: "laptopcomputer.and.iphone")
-                                Text("\(s.hostCount) devices")
-                            }
+                    } else {
+                        Text(dev.status)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                        }
                     }
-                    .font(.caption2)
-                } else {
-                    Text(dev.status)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    if dev.busy {
+                        ProgressView().controlSize(.small)
+                    } else if let battery {
+                        Text("\(battery)%")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                        Text("BATTERY")
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(1)
+                            .foregroundStyle(batteryColor(percent: battery))
+                    } else {
+                        Circle()
+                            .fill(Color.secondary.opacity(0.45))
+                            .frame(width: 8, height: 8)
+                    }
                 }
             }
 
-            Spacer()
-
-            if dev.busy {
-                ProgressView().controlSize(.small)
-            } else if dev.connected {
-                HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("Online")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+            if dev.connected, let state = dev.state {
+                HStack(spacing: 7) {
+                    infoChip(icon: "waveform", text: activeModeTitle, color: tint)
+                    infoChip(icon: "slider.horizontal.3", text: activePresetTitle, color: tint)
+                    if state.hostCount > 1 {
+                        infoChip(icon: "laptopcomputer.and.iphone", text: "\(state.hostCount) hosts", color: .secondary)
+                    }
+                    Spacer(minLength: 0)
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.green).frame(width: 6, height: 6)
+                        Text("LIVE")
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(0.8)
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Color.green.opacity(0.12), in: Capsule())
             }
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
+        .padding(15)
+        .panelSurface(tint: tint, radius: 18, elevated: true)
+    }
+
+    private func infoChip(icon: String, text: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .semibold))
+            Text(text)
+                .font(.system(size: 9.5, weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
     // MARK: - Noise Control Card
 
     private var noiseControlCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("NOISE CONTROL")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Noise control")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                Spacer()
+                Text(activeModeTitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(tint)
+            }
 
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 ancModeButton("Noise Cancelling", .noiseCancelling, icon: "ear.and.waveform")
                 ancModeButton("Transparency", .transparency, icon: "person.wave.2")
                 ancModeButton("Normal", .normal, icon: "headphones")
@@ -575,19 +706,18 @@ struct MenuContent: View {
 
             if dev.profile.supports(.ancLevel),
                dev.state?.ancMode == ANCMode.noiseCancelling.rawValue {
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 7) {
                     HStack {
-                        Text("Strength Level")
-                            .font(.caption2)
+                        Text("Cancellation strength")
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text("Level \(dev.state?.ancLevel ?? dev.requestedLevel) of 5")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
+                        Text("\(dev.state?.ancLevel ?? dev.requestedLevel) / 5")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(tint)
                     }
 
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         ForEach(1...5, id: \.self) { level in
                             let active = (dev.state?.ancLevel ?? dev.requestedLevel) == level
                             Button {
@@ -596,12 +726,14 @@ struct MenuContent: View {
                                 Text("\(level)")
                                     .font(.system(size: 11, weight: active ? .bold : .regular))
                                     .frame(maxWidth: .infinity)
-                                    .frame(height: 24)
-                                    .background(active ? tint : Color.primary.opacity(0.06),
-                                                in: RoundedRectangle(cornerRadius: 6))
+                                    .frame(height: 28)
+                                    .background(
+                                        active ? tint : Color.primary.opacity(0.045),
+                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    )
                                     .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PanelButtonStyle())
                             .foregroundStyle(active ? .white : .primary)
                             .hoverHighlight(active: active)
                             .help("Noise cancelling strength \(level) of 5")
@@ -611,9 +743,8 @@ struct MenuContent: View {
                 .padding(.top, 4)
             }
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
+        .padding(14)
+        .panelSurface(tint: tint, radius: 16)
     }
 
     private func ancModeButton(_ title: String, _ mode: ANCMode, icon: String) -> some View {
@@ -621,20 +752,38 @@ struct MenuContent: View {
         return Button {
             dev.setANC(mode, level: dev.state?.ancLevel ?? 5)
         } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: active ? .semibold : .regular))
+            VStack(spacing: 7) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(active ? Color.white.opacity(0.16) : tint.opacity(0.08))
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .frame(width: 31, height: 31)
                 Text(title)
-                    .font(.system(size: 11, weight: active ? .semibold : .regular))
+                    .font(.system(size: 10.5, weight: active ? .semibold : .medium))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(active ? tint : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, 10)
+            .background(
+                LinearGradient(
+                    colors: active
+                        ? [tint, tint.opacity(0.72)]
+                        : [Color.primary.opacity(0.055), Color.primary.opacity(0.025)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(active ? Color.white.opacity(0.16) : Color.primary.opacity(0.045), lineWidth: 1)
+            )
             .contentShape(Rectangle())
             .foregroundStyle(active ? Color.white : Color.primary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PanelButtonStyle())
         .hoverHighlight(active: active)
         .help(title)
     }
@@ -642,11 +791,15 @@ struct MenuContent: View {
     // MARK: - Equaliser Card
 
     private var equaliserCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 11) {
             HStack {
-                Text("EQUALISER")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Equaliser")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    Text(activePresetTitle)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(tint)
+                }
 
                 Spacer()
 
@@ -655,13 +808,16 @@ struct MenuContent: View {
                     if showAllPresets { showCustomEQ = false }
                 } label: {
                     HStack(spacing: 3) {
-                        Text(showAllPresets ? "Less" : "All 22 Presets")
+                        Text(showAllPresets ? "Show less" : "Browse presets")
                         Image(systemName: showAllPresets ? "chevron.up" : "chevron.down")
                     }
-                    .font(.caption2)
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                     .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelButtonStyle())
             }
 
             // Real-time Visual EQ Curve
@@ -691,11 +847,12 @@ struct MenuContent: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 6)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(active ? tint : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                                .background(active ? tint : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                                 .contentShape(Rectangle())
                                 .foregroundStyle(active ? .white : .primary)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PanelButtonStyle())
+                            .hoverHighlight(active: active)
                         }
                     }
                     .padding(.vertical, 2)
@@ -703,7 +860,7 @@ struct MenuContent: View {
 
             } else {
                 HStack(spacing: 6) {
-                    ForEach(["signature", "acoustic", "bassbooster", "bassreducer"], id: \.self) { key in
+                    ForEach(quickPresetKeys, id: \.self) { key in
                         if let value = eqPresets[key] {
                             let title = eqPresetOrder.first(where: { $0.key == key })?.title ?? key.capitalized
                             let active = dev.state?.eqPreset == value.id[0]
@@ -714,13 +871,13 @@ struct MenuContent: View {
                                     .font(.system(size: 11, weight: active ? .semibold : .regular))
                                     .lineLimit(1)
                                     .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
-                                    .background(active ? tint : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
+                                    .padding(.vertical, 7)
+                                    .background(active ? tint : Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                                     .contentShape(Rectangle())
-                                .contentShape(Rectangle())
                                     .foregroundStyle(active ? .white : .primary)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PanelButtonStyle())
+                            .hoverHighlight(active: active)
                         }
                     }
                 }
@@ -740,12 +897,13 @@ struct MenuContent: View {
                     .font(.caption2)
                     .fontWeight(.medium)
                     .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(showCustomEQ ? tint : Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                    .padding(.vertical, 6)
+                    .background(showCustomEQ ? tint : Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .contentShape(Rectangle())
                     .foregroundStyle(showCustomEQ ? .white : .primary)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PanelButtonStyle())
+                .hoverHighlight(active: showCustomEQ)
 
                 Spacer()
 
@@ -760,15 +918,24 @@ struct MenuContent: View {
                 customEditorView
             }
         }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.06), lineWidth: 1))
+        .padding(14)
+        .panelSurface(tint: tint, radius: 16)
     }
 
     // MARK: - Custom EQ Sliders
 
     private var customEditorView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("8-band tuning", systemImage: "waveform.path.ecg")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(tint)
+                Spacer()
+                Text("−6 dB  ·  +6 dB")
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+            }
+
             HStack(alignment: .bottom, spacing: 2) {
                 ForEach(editorBands.indices, id: \.self) { index in
                     VStack(spacing: 2) {
@@ -783,6 +950,7 @@ struct MenuContent: View {
                         .rotationEffect(.degrees(-90))
                         .frame(width: 110, height: 18)
                         .frame(width: 38, height: 110)
+                        .tint(tint)
 
                         Text(bandLabels[index])
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
@@ -798,17 +966,29 @@ struct MenuContent: View {
                     editorBands = Array(repeating: 0x78, count: 8)
                     sendCustomEQ()
                 }
-                .font(.caption2)
+                .font(.caption2.weight(.medium))
+                .buttonStyle(PanelButtonStyle())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
 
                 Spacer()
 
-                Text("Applies instantly to DSP")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Label("Live on device", systemImage: "bolt.fill")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(tint)
             }
         }
-        .padding(10)
-        .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
+        .padding(12)
+        .background(
+            LinearGradient(
+                colors: [tint.opacity(0.075), Color.primary.opacity(0.025)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).strokeBorder(tint.opacity(0.12), lineWidth: 1))
     }
 
     private func bandBinding(_ index: Int) -> Binding<Double> {
@@ -848,7 +1028,10 @@ struct MenuContent: View {
                         Image(systemName: "headphones")
                         Text("Devices")
                     }
-                    .font(.caption2)
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -861,10 +1044,14 @@ struct MenuContent: View {
                     Image(systemName: "arrow.clockwise")
                     Text("Refresh")
                 }
-                .font(.caption2)
+                .font(.caption2.weight(.medium))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelButtonStyle())
             .foregroundStyle(.secondary)
+            .help("Refresh device state")
 
             Spacer()
 
@@ -875,24 +1062,18 @@ struct MenuContent: View {
                     Image(systemName: "power")
                     Text("Quit")
                 }
-                .font(.caption2)
+                .font(.caption2.weight(.medium))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PanelButtonStyle())
             .foregroundStyle(.secondary)
+            .help("Quit SoundcoreBridge")
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 2)
     }
 }
-
-// MARK: - Standalone Window Manager
-
-final class WindowManager {
-    static let shared = WindowManager()
-    private var window: NSWindow?
-
-    func showWindow(dev: DeviceController) {}
-}
-
 
 // MARK: - App Entry Point
 
