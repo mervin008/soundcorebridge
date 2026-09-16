@@ -61,6 +61,7 @@ func batteryColor(percent: Int) -> Color {
 
 final class DeviceController: ObservableObject {
     static let shared = DeviceController()
+    private static let preferredDeviceKey = "preferredSoundcoreDeviceAddress"
 
     @Published var status = "Connecting…"
     @Published var connected = false
@@ -71,11 +72,21 @@ final class DeviceController: ObservableObject {
     @Published var profile: DeviceProfile = .unknown
     @Published var busy = false
     @Published var requestedLevel = 5
+    @Published private(set) var availableDevices: [PairedSoundcoreDevice] = []
+    @Published private(set) var selectedDeviceAddress: String?
+    @Published private(set) var connectedChannel: UInt8?
 
     private var worker: Thread?
     private let lock = NSLock()
     private var outbox: [[UInt8]] = []
     private var running = true
+    private var preferredAddress: String?
+
+    private init() {
+        let saved = UserDefaults.standard.string(forKey: Self.preferredDeviceKey)
+        preferredAddress = saved
+        selectedDeviceAddress = saved
+    }
 
     func start() {
         guard worker == nil else { return }
@@ -104,6 +115,29 @@ final class DeviceController: ObservableObject {
     private func drain() -> [[UInt8]] {
         lock.lock(); let p = outbox; outbox.removeAll(); lock.unlock()
         return p
+    }
+
+    private func preferredDeviceAddress() -> String? {
+        lock.lock(); defer { lock.unlock() }
+        return preferredAddress
+    }
+
+    private func storePreferredDevice(_ address: String) {
+        lock.lock(); preferredAddress = address; outbox.removeAll(); lock.unlock()
+        UserDefaults.standard.set(address, forKey: Self.preferredDeviceKey)
+    }
+
+    func selectDevice(_ address: String) {
+        guard preferredDeviceAddress() != address else { return }
+        storePreferredDevice(address)
+        ui {
+            self.selectedDeviceAddress = address
+            self.connected = false
+            self.busy = false
+            self.profile = .unknown
+            self.state = nil
+            self.status = "Switching device…"
+        }
     }
 
     // MARK: commands
@@ -157,7 +191,9 @@ final class DeviceController: ObservableObject {
 
     private func loop() {
         while running {
-            guard let device = try? RFCOMMLink.find(address: nil) else {
+            let paired = RFCOMMLink.pairedSoundcoreDevices()
+            ui { self.availableDevices = paired }
+            guard !paired.isEmpty else {
                 applog("no paired Soundcore device found")
                 ui {
                     self.status = "No paired Soundcore device"
@@ -168,29 +204,49 @@ final class DeviceController: ObservableObject {
                 continue
             }
 
+            let requestedAddress = preferredDeviceAddress()
+            let selected = paired.first(where: { $0.address == requestedAddress }) ?? paired[0]
+            if requestedAddress != selected.address {
+                storePreferredDevice(selected.address)
+                ui { self.selectedDeviceAddress = selected.address }
+            }
+            guard let device = try? RFCOMMLink.find(address: selected.address) else {
+                ui { self.status = "Could not access \(selected.name)" }
+                pump(3)
+                continue
+            }
+
             let rawName = device.name ?? "Soundcore Headset"
+            let currentAddress = selected.address
             ui {
                 self.deviceName = rawName
                 self.profile = .unknown
                 self.state = nil
                 self.connected = false
             }
-            let link = RFCOMMLink(device: device)
-            applog("opening channel 30 on \(device.addressString ?? "?") (\(rawName))")
+            let preferredChannels = DeviceRegistry.profile(bluetoothName: rawName)?.rfcommChannels ?? []
+            let link: RFCOMMLink
+            let openedChannel: UInt8
+            applog("opening control channel on \(currentAddress) (\(rawName))")
             ui { self.status = "Connecting to \(rawName)…" }
 
             do {
-                try link.open(channelID: 30)
+                let opened = try RFCOMMLink.openControl(device: device,
+                                                        preferred: preferredChannels)
+                link = opened.link
+                openedChannel = opened.channel
             } catch {
                 applog("OPEN FAILED: \(error)")
                 ui {
                     self.connected = false
                     self.busy = false
-                    self.status = "Channel busy — another device may hold it"
+                    self.status = "No control channel available"
                 }
                 pump(6)
                 continue
             }
+            applog("channel \(openedChannel) open")
+            ui { self.connectedChannel = openedChannel }
 
             var identifiedProfile: DeviceProfile?
             link.onPacket = { [weak self] packet in
@@ -252,7 +308,7 @@ final class DeviceController: ObservableObject {
             try? link.send(Command(0x01, 0x01))
 
             var lastPoll = Date()
-            while running && !link.wasClosed {
+            while running && !link.wasClosed && preferredDeviceAddress() == currentAddress {
                 let packets = drain()
                 if !packets.isEmpty {
                     for packet in packets {
@@ -277,12 +333,14 @@ final class DeviceController: ObservableObject {
 
             applog("link dropped (wasClosed=\(link.wasClosed)) — reconnecting")
             link.close()
+            let isSwitching = preferredDeviceAddress() != currentAddress
             ui {
                 self.connected = false
                 self.busy = false
                 self.profile = .unknown
                 self.state = nil
-                self.status = "Reconnecting…"
+                self.connectedChannel = nil
+                self.status = isSwitching ? "Switching device…" : "Reconnecting…"
             }
             pump(2)
         }
@@ -772,6 +830,30 @@ struct MenuContent: View {
 
     private var footerActions: some View {
         HStack(spacing: 10) {
+            if dev.availableDevices.count > 1 {
+                Menu {
+                    ForEach(dev.availableDevices) { device in
+                        Button {
+                            dev.selectDevice(device.address)
+                        } label: {
+                            if dev.selectedDeviceAddress == device.address {
+                                Label("\(device.name) · \(device.address.suffix(5))", systemImage: "checkmark")
+                            } else {
+                                Text("\(device.name) · \(device.address.suffix(5))")
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "headphones")
+                        Text("Devices")
+                    }
+                    .font(.caption2)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
             Button {
                 dev.refresh()
             } label: {
