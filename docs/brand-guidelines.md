@@ -29,7 +29,7 @@ decorative, and must stay distinguishable:
 |---|---|
 | Noise Cancelling | `#4A9EFF` |
 | Ambient | `#26D0A6` |
-| Off | `#A6B0C2` |
+| Normal | `#FFA347` |
 
 Body text on Ink clears 4.5:1. Muted on Ink clears 4.5:1 at 15px and above.
 
