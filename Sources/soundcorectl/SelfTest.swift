@@ -77,8 +77,26 @@ func modeSelfTest() {
     // An unknown device must fall back to read-only.
     let fallback = DeviceRegistry.resolve(state: Array(repeating: 0, count: 120), bluetoothName: "Some Other Headset")
     let readOnly = !fallback.supports(.soundMode) && !fallback.supports(.equaliser)
+        && !fallback.allowsWrites
     if !readOnly { failures += 1 }
     log("  \(readOnly ? "PASS" : "FAIL")  unknown device falls back to a read-only profile")
+
+    let unknownANCBlocked = (try? ancWrite(profile: fallback, mode: .noiseCancelling, level: 5)) == nil
+    let unknownEQBlocked = (try? eqWrite(profile: fallback, id: eqCustomID,
+                                         bands: Array(repeating: 0x78, count: 8))) == nil
+    let verifiedWritesWork = (try? ancWrite(profile: .space2, mode: .normal, level: 5)) != nil
+        && (try? eqWrite(profile: .space2, id: eqPresets["signature"]!.id,
+                         bands: eqPresets["signature"]!.bands)) != nil
+    let writeBoundary = unknownANCBlocked && unknownEQBlocked && verifiedWritesWork
+    if !writeBoundary { failures += 1 }
+    log("  \(writeBoundary ? "PASS" : "FAIL")  writes require a verified device profile and capability")
+
+    var misleadingState = sampleSpace2State()
+    misleadingState.replaceSubrange(7...10, with: Array("9999".utf8))
+    let nameOnly = DeviceRegistry.resolve(state: misleadingState, bluetoothName: "soundcore Space 2")
+    let exactIdentityRequired = !nameOnly.allowsWrites
+    if !exactIdentityRequired { failures += 1 }
+    log("  \(exactIdentityRequired ? "PASS" : "FAIL")  Bluetooth name alone cannot enable writes")
 
     // Space 2 offsets still decode a real captured blob.
     let space2 = DeviceRegistry.resolve(state: sampleSpace2State(), bluetoothName: "soundcore Space 2")

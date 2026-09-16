@@ -25,7 +25,7 @@ The project is split into a command-line interface (`soundcorectl`, alias `space
   - Implements `FrameParser` to reassemble split frames and resynchronize past leading stream noise or corrupt bytes.
 - **`Sources/soundcorectl/Control.swift`**
   - Contains command payloads, ANC modes (`ANCMode`), and the 53-byte equalizer templates.
-  - Implements the mandatory handshake sequence required to unlock write permissions.
+  - Implements profile-gated command encoders and the verified Space 2 handshake.
   - Contains exact verified payloads for all 22 factory EQ presets and custom EQ calculation using solved Constant-Q DSP compensation matrices.
 - **`Sources/soundcorectl/RFCOMM.swift`**
   - Low-level wrapper for macOS `IOBluetoothDevice` and `IOBluetoothRFCOMMChannel`.
@@ -35,7 +35,10 @@ The project is split into a command-line interface (`soundcorectl`, alias `space
   - The modern macOS Control Center SwiftUI presentation layer.
   - Features real-time Bézier EQ frequency curve visualization (`EQCurveView`), dynamic device badge, and battery indicators.
   - Integrates the `DeviceController` background thread with reactive UI components using `SoundcoreBridgeAppDelegate` for safe Bluetooth initialization.
-  - Supports both menu bar popover and standalone detached window modes.
+  - Hides controls that are not enabled by the resolved device profile.
+- **`Sources/soundcorectl/DeviceProfile.swift`**
+  - Defines verified model identities, readable state fields, capabilities, and the control-protocol family.
+  - Keeps unidentified devices read-only; a Bluetooth display name alone never enables writes.
 - **`Sources/soundcorectl/SelfTest.swift`**
   - Diagnostic suite. Runs mock encodings, parser tests, packet reassembly verifications, and preset integrity tests without requiring a real Bluetooth device connected.
 - **`Sources/soundcorectl/Util.swift`**
@@ -50,7 +53,12 @@ Soundcore commands are addressed using a two-byte structure: `[category, code]`.
 - Writes are typically codes `80–FF` (with the high bit set).
 
 ### The Handshake Requirement
-The headset ignores all write commands (like ANC toggles or EQ writes) until a connection handshake is successfully executed. The sequence is:
+The Space 2 ignores write commands such as ANC and EQ changes until its verified
+handshake is completed. SoundcoreBridge first requests state using `01:01`,
+checks the model code reported by the device, and only then selects a profile's
+handshake. Unknown devices stay read-only and never receive this sequence.
+
+The Space 2 sequence is:
 1. Send `01:01` (device info)
 2. Send `05:01` with payload `[01]` (capability table query)
 3. Send `05:81` with no payload
@@ -99,6 +107,8 @@ Querying `01:01` returns a 103-byte payload containing the complete state of the
 ## 3. Safety Boundaries (DO NOT BYPASS)
 
 The Space 2 implements highly sensitive OTA channels that pose a bricking risk if written to or analyzed unsafely.
+- **Identify before writing**: Ordinary app and CLI controls must resolve the model code from a valid state response before running a handshake or encoding a write. Bluetooth names are discovery hints only.
+- **Capability gate every write**: UI visibility is not a security boundary. All write encoders must reject profiles that lack the corresponding verified feature.
 - **Blocked Channels**: RFCOMM channels **12** (TOTA) and **13** (BESOTA) are hard-blocked in `RFCOMM.swift` to prevent accidental firmware corruption. Do not remove this restriction.
 - **Apple iAP2 channel**: RFCOMM channel **16** (IOSSPP) is blocked as it is incompatible with our raw frame protocol.
 - **One Control Client Limit**: The headset accepts only one active RFCOMM control connection at a time. If the companion mobile app is open or holding the session, SoundcoreBridge will fail to bind. Releasing the socket on the other host (e.g., turning off Bluetooth on the phone) is required.
@@ -108,7 +118,7 @@ The Space 2 implements highly sensitive OTA channels that pose a bricking risk i
 ## 4. Development & Verification Workflows
 
 ### 1. Verification & Testing
-Before making or committing any changes, run the offline self-test tool to verify structural frame serialization, packet reassembly, checksum formulas, and EQ mapping logic:
+Before making or committing any changes, run the offline self-test tool to verify structural frame serialization, packet reassembly, checksum formulas, EQ mapping logic, and the profile write boundary:
 ```bash
 swift build
 swift run soundcorectl selftest

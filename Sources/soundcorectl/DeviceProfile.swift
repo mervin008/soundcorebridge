@@ -7,12 +7,18 @@ enum DeviceFeature: String, CaseIterable {
     case battery, firmware, soundMode, ancLevel, equaliser, customEQ, multipoint
 }
 
+/// A verified family of write commands. Read-only profiles deliberately have
+/// no control protocol, even if their state blob can be partially decoded.
+enum DeviceControlProtocol {
+    case space2
+}
+
 /// Everything that varies between Soundcore models.
 ///
-/// The frame codec (`Frame`) and the RFCOMM transport are identical across the
-/// range — what changes is where fields sit inside the `01:01` state blob,
-/// which number means which sound mode, and how many EQ bands exist. Adding a
-/// model therefore means adding a profile, not new protocol code.
+/// Profiles describe only behavior verified on real hardware. The current
+/// device family shares the frame codec and RFCOMM transport, but a future
+/// model may require a different transport or command codec as well as different
+/// state offsets.
 struct DeviceProfile {
     /// ASCII model code as reported inside the state blob, e.g. "1402".
     let modelCode: String
@@ -39,8 +45,10 @@ struct DeviceProfile {
     /// Per-model mapping of sound mode to its wire value.
     let soundModeValues: [UInt8: ANCMode]
     let features: Set<DeviceFeature>
+    let controlProtocol: DeviceControlProtocol?
 
     func supports(_ f: DeviceFeature) -> Bool { features.contains(f) }
+    var allowsWrites: Bool { controlProtocol != nil }
 }
 
 extension DeviceProfile {
@@ -62,7 +70,8 @@ extension DeviceProfile {
         ancLevelOffset: 72,
         hostCountOffset: 91,
         soundModeValues: [0x00: .noiseCancelling, 0x01: .transparency, 0x02: .normal],
-        features: [.battery, .firmware, .soundMode, .ancLevel, .equaliser, .customEQ, .multipoint]
+        features: [.battery, .firmware, .soundMode, .ancLevel, .equaliser, .customEQ, .multipoint],
+        controlProtocol: .space2
     )
 
     /// Fallback for a Soundcore device we have never verified.
@@ -87,7 +96,8 @@ extension DeviceProfile {
         ancLevelOffset: nil,
         hostCountOffset: nil,
         soundModeValues: [:],
-        features: [.battery, .firmware]
+        features: [.battery, .firmware],
+        controlProtocol: nil
     )
 }
 
@@ -116,14 +126,17 @@ enum DeviceRegistry {
     }
 
     /// Resolve against a state blob, falling back to the read-only profile.
-    static func resolve(state: [UInt8], bluetoothName: String) -> DeviceProfile {
-        let p = profile(bluetoothName: bluetoothName) ?? .unknown
-        if state.count > p.modelRange.upperBound,
-           let code = String(bytes: state[p.modelRange], encoding: .ascii),
+    static func resolve(state: [UInt8], bluetoothName _: String) -> DeviceProfile {
+        // A Bluetooth name is useful for discovery, but it is not sufficient
+        // proof for enabling writes. Only the model code reported by the device
+        // may resolve a write-capable profile.
+        let identityRange = DeviceProfile.unknown.modelRange
+        if state.count > identityRange.upperBound,
+           let code = String(bytes: state[identityRange], encoding: .ascii),
            let exact = profile(modelCode: code) {
             return exact
         }
-        return p
+        return .unknown
     }
 }
 
