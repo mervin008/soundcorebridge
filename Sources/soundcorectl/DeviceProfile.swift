@@ -26,6 +26,10 @@ struct DeviceProfile {
     let nameMatches: [String]
     let displayName: String
 
+    /// Verified RFCOMM control channels, in preference order. An empty list
+    /// means discovery must rely on safe SDP candidates and the global fallback.
+    let rfcommChannels: [UInt8]
+
     let minStateLength: Int
     let batteryOffset: Int
     /// Battery is reported 0–9 on the Apple accessory scale; percent is
@@ -58,6 +62,7 @@ extension DeviceProfile {
         modelCode: "1402",
         nameMatches: ["space 2", "space2"],
         displayName: "Soundcore Space 2",
+        rfcommChannels: [30],
         minStateLength: 92,
         batteryOffset: 0,
         batteryMax: 9,
@@ -84,6 +89,7 @@ extension DeviceProfile {
         modelCode: "",
         nameMatches: ["soundcore", "anker"],
         displayName: "Soundcore device",
+        rfcommChannels: [],
         minStateLength: 12,
         batteryOffset: 0,
         batteryMax: 9,

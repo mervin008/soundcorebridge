@@ -6,6 +6,12 @@ struct ProbeError: Error, CustomStringConvertible {
     init(_ m: String) { description = m }
 }
 
+struct PairedSoundcoreDevice: Identifiable, Equatable {
+    let address: String
+    let name: String
+    var id: String { address }
+}
+
 /// Firmware-flashing services. These are matched by the *service* advertised on
 /// a channel, not by channel number: channel 12 is firmware OTA on a Space 2 but
 /// OBEX Object Push on an Android phone, so a number-based blocklist is both
@@ -45,8 +51,22 @@ func blockedChannel(_ ch: UInt8, device: IOBluetoothDevice) -> String? {
     return nil
 }
 
-/// Vendor control channels seen on Soundcore hardware.
-let allowedChannels: Set<UInt8> = [30, 17]
+/// Vendor control channels seen on Soundcore hardware. Order matters when SDP
+/// records are unavailable: try the currently verified Space 2 channel first.
+let defaultControlChannels: [UInt8] = [30, 17]
+let allowedChannels = Set(defaultControlChannels)
+
+/// Combine model knowledge and cached SDP evidence without ever broadening the
+/// safety allowlist. Kept pure so ordering behavior can be tested offline.
+func orderedControlChannels(preferred: [UInt8], advertised: [UInt8]) -> [UInt8] {
+    var result: [UInt8] = []
+    let safeDiscovery = advertised.filter { allowedChannels.contains($0) }
+    for channel in preferred + safeDiscovery + defaultControlChannels
+    where !result.contains(channel) {
+        result.append(channel)
+    }
+    return result
+}
 
 /// IOBluetooth delivers delegate callbacks through the *run loop* of the thread
 /// that opened the channel — not through a dispatch queue. Awaiting a Swift
@@ -67,12 +87,66 @@ final class RFCOMMLink: NSObject {
     var onRaw: (([UInt8]) -> Void)?
 
     var anyChannel = false
+    var profileChannels: Set<UInt8> = []
     var maxOpenAttempts = 20
     var verbose = false
 
     init(device: IOBluetoothDevice) {
         self.device = device
         super.init()
+    }
+
+    static func pairedSoundcoreDevices() -> [PairedSoundcoreDevice] {
+        let paired = (IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice]) ?? []
+        return paired.compactMap { device in
+            guard let address = device.addressString,
+                  DeviceRegistry.isLikelySoundcore(device.name ?? "") else { return nil }
+            return PairedSoundcoreDevice(address: address,
+                                         name: device.name ?? "Soundcore device")
+        }
+        .sorted {
+            let names = $0.name.localizedCaseInsensitiveCompare($1.name)
+            return names == .orderedSame ? $0.address < $1.address : names == .orderedAscending
+        }
+    }
+
+    static func advertisedChannels(device: IOBluetoothDevice) -> [UInt8] {
+        ((device.services as? [IOBluetoothSDPServiceRecord]) ?? []).compactMap { record in
+            var channel: BluetoothRFCOMMChannelID = 0
+            guard record.getRFCOMMChannelID(&channel) == kIOReturnSuccess,
+                  allowedChannels.contains(channel),
+                  blockedChannel(channel, device: device) == nil else { return nil }
+            return channel
+        }
+    }
+
+    static func controlChannelCandidates(device: IOBluetoothDevice,
+                                         preferred: [UInt8]) -> [UInt8] {
+        orderedControlChannels(preferred: preferred,
+                               advertised: advertisedChannels(device: device))
+    }
+
+    /// Open the first safe candidate. The primary candidate retains the longer
+    /// retry budget needed by macOS RFCOMM; fallbacks fail faster.
+    static func openControl(device: IOBluetoothDevice,
+                            preferred: [UInt8],
+                            verbose: Bool = false) throws -> (link: RFCOMMLink, channel: UInt8) {
+        let candidates = controlChannelCandidates(device: device, preferred: preferred)
+        var failures: [String] = []
+        for (index, channel) in candidates.enumerated() {
+            let link = RFCOMMLink(device: device)
+            link.verbose = verbose
+            link.profileChannels = Set(preferred)
+            link.maxOpenAttempts = index == 0 ? 20 : 4
+            do {
+                try link.open(channelID: channel)
+                return (link, channel)
+            } catch {
+                failures.append("\(channel): \(error)")
+                link.close()
+            }
+        }
+        throw ProbeError("no safe control channel opened (\(failures.joined(separator: "; ")))")
     }
 
     static func find(address: String?) throws -> IOBluetoothDevice {
@@ -82,16 +156,9 @@ final class RFCOMMLink: NSObject {
             }
             return d
         }
-        let paired = (IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice]) ?? []
-        guard let d = paired.first(where: {
-            DeviceRegistry.isLikelySoundcore($0.name ?? "")
-        }) else {
+        guard let candidate = pairedSoundcoreDevices().first,
+              let d = IOBluetoothDevice(addressString: candidate.address) else {
             throw ProbeError("no paired Soundcore device found — pass --device <addr>")
-        }
-        // Rebuild from the address: objects vended by pairedDevices() do not
-        // reliably route an RFCOMM open, while a freshly constructed one does.
-        if let addr = d.addressString, let fresh = IOBluetoothDevice(addressString: addr) {
-            return fresh
         }
         return d
     }
@@ -125,8 +192,8 @@ final class RFCOMMLink: NSObject {
         if let why = blockedChannel(channelID, device: device) {
             throw ProbeError("refusing channel \(channelID): \(why)")
         }
-        guard allowedChannels.contains(channelID) || anyChannel else {
-            throw ProbeError("channel \(channelID) is not in the allowlist \(allowedChannels.sorted()) — pass --any-channel to override")
+        guard allowedChannels.contains(channelID) || profileChannels.contains(channelID) || anyChannel else {
+            throw ProbeError("channel \(channelID) is not approved by discovery or a verified profile — pass --any-channel to override")
         }
 
         let liveness = Frame.encode(Command(0x01, 0x01))

@@ -70,9 +70,19 @@ func modeSelfTest() {
     for p in DeviceRegistry.all {
         if DeviceRegistry.profile(modelCode: p.modelCode)?.displayName != p.displayName { profileOK = false }
         if DeviceRegistry.profile(bluetoothName: p.nameMatches[0])?.modelCode != p.modelCode { profileOK = false }
+        if p.allowsWrites && p.rfcommChannels.isEmpty { profileOK = false }
     }
     if !profileOK { failures += 1 }
     log("  \(profileOK ? "PASS" : "FAIL")  \(DeviceRegistry.all.count) profile(s) resolve by model code and name")
+
+    let channelOrder = orderedControlChannels(preferred: [17, 30],
+                                              advertised: [30, 17, 12, 30])
+    let channelFallback = orderedControlChannels(preferred: [], advertised: [])
+    let futureProfile = orderedControlChannels(preferred: [42], advertised: [12])
+    let channelsOK = channelOrder == [17, 30] && channelFallback == defaultControlChannels
+        && futureProfile == [42, 30, 17]
+    if !channelsOK { failures += 1 }
+    log("  \(channelsOK ? "PASS" : "FAIL")  control channels are ordered, deduplicated and profile-gated")
 
     // An unknown device must fall back to read-only.
     let fallback = DeviceRegistry.resolve(state: Array(repeating: 0, count: 120), bluetoothName: "Some Other Headset")
