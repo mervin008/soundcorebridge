@@ -16,7 +16,7 @@
 <p align="center"><sub>Free and open source. If it saves you reaching for your phone, a ⭐ helps others find it.</sub></p>
 
 <p align="center">
-  <img src="docs/img/panel-anc.png" width="360" alt="The SoundcoreBridge menu bar panel">
+  <img src="docs/img/panel-anc.png?v=20260916" width="360" alt="The current SoundcoreBridge menu bar panel">
 </p>
 
 ## The problem
