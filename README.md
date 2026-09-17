@@ -16,7 +16,7 @@
 <p align="center"><sub>Free and open source. If it saves you reaching for your phone, a ⭐ helps others find it.</sub></p>
 
 <p align="center">
-  <img src="docs/img/panel-anc.png?v=20260916" width="360" alt="The current SoundcoreBridge menu bar panel">
+  <img src="docs/img/panel-anc.png?v=20260917" width="360" alt="The current SoundcoreBridge menu bar panel">
 </p>
 
 ## The problem
@@ -74,6 +74,7 @@ soundcorectl status
 soundcorectl anc nc --level 5
 soundcorectl eq rock
 soundcorectl eq "6,4,2,0,0,-2,-4,-6"
+soundcorectl support-report --out support-report.txt
 ```
 
 ## Supported headphones
@@ -90,7 +91,10 @@ guessing, because wrong offsets written to headphones are how they end up in
 odd states.
 
 Got one that isn't listed? [Open an issue](https://github.com/mervin008/soundcorebridge/issues/new/choose)
-— it's mostly a matter of confirming what it does.
+and include a support report from the clipboard button beside Quit in the app.
+Reports include model, firmware, and profile details without Bluetooth names,
+addresses, or raw packets. This helps identify what needs to be verified;
+enabling controls still requires captures from the actual model.
 
 ## How it works
 

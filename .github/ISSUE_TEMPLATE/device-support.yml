@@ -11,7 +11,8 @@ body:
   - type: textarea
     id: status
     attributes:
-      label: Output of `soundcorectl status` and `soundcorectl sdp`
+      label: Device support report
+      description: Copy using the clipboard button beside Quit in the app, or quit the app and run `soundcorectl support-report`. The report excludes Bluetooth names, addresses, raw packets, and logs. Review before sharing.
       render: text
   - type: checkboxes
     id: help

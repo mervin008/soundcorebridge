@@ -7,12 +7,20 @@ Thanks for taking a look.
 [Open an issue](https://github.com/mervin008/soundcorebridge/issues/new/choose).
 Anyone can — you don't need write access to the repo.
 
-If it's about a device, please include the output of:
+If it's about a device, click the clipboard button beside Quit in the menu-bar
+app to copy a support report. It excludes Bluetooth names, addresses, raw
+packets, and logs. Add your headphone model name and describe the problem.
+
+Or quit the menu-bar app to release its Bluetooth connection, then run:
 
 ```sh
-soundcorectl status
-soundcorectl sdp
+soundcorectl support-report --out support-report.txt
 ```
+
+The command reads device identity without running a control handshake or
+changing headphone settings. It creates a new file and refuses to overwrite an
+existing one. If connection fails, copy the app report and describe the error;
+review any additional terminal output before sharing it.
 
 ## Adding support for another Soundcore model
 
