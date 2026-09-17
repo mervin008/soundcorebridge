@@ -491,6 +491,7 @@ struct MenuContent: View {
     @State private var showCustomEQ = false
     @State private var editorBands = Array(repeating: UInt8(0x78), count: 8)
     @State private var isEditing = false
+    @State private var reportCopied = false
 
     private let presetColumns = [GridItem(.adaptive(minimum: 120, maximum: 190), spacing: 6)]
     private let bandLabels = ["100", "200", "400", "800", "1.6k", "3.2k", "6.4k", "12.8k"]
@@ -1054,6 +1055,22 @@ struct MenuContent: View {
             .help("Refresh device state")
 
             Spacer()
+
+            Button {
+                let report = SupportReport(profile: dev.profile, state: dev.state,
+                                           connected: dev.connected, channel: dev.connectedChannel)
+                NSPasteboard.general.clearContents()
+                reportCopied = NSPasteboard.general.setString(report.text, forType: .string)
+            } label: {
+                Image(systemName: reportCopied ? "checkmark" : "doc.on.clipboard")
+                    .font(.caption2.weight(.medium))
+                    .padding(6)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(PanelButtonStyle())
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(reportCopied ? "Support report copied. Copy again" : "Copy support report")
+            .help("Copy a device support report without Bluetooth names or addresses")
 
             Button {
                 NSApplication.shared.terminate(nil)

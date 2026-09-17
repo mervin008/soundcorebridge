@@ -13,6 +13,7 @@ USAGE
 
 MODES
   selftest               Verify the codec against known-good packets (no headset)
+  support-report         Read device identity and print a shareable support report
   sdp                    List paired devices and dump SDP service records
   probe                  Open the control channel, send device-info, dump replies
   sweep                  Read-only command sweep: find which commands answer
@@ -35,6 +36,7 @@ OPTIONS
   --allow-writes         Permit commands with the high bit set (mutating)
   --any-channel          Bypass the channel allowlist (OTA channels stay blocked)
   --raw                  Also print raw stream chunks before reassembly
+  --out <path>           support-report: save to a new text file
 
 SAFETY
   Space 2 channels 12 (TOTA) and 13 (BESOTA) flash firmware and are hard-blocked.
@@ -111,6 +113,24 @@ func identify(_ link: RFCOMMLink) throws -> (DeviceProfile, DeviceState) {
     }
     guard let result else { throw ProbeError("no valid device state returned") }
     return result
+}
+
+/// Read identity only: no handshake, control writes, packet dumps, or name logs.
+func modeSupportReport() throws {
+    let device = try RFCOMMLink.find(address: args.str("device"))
+    let preferred = DeviceRegistry.profile(bluetoothName: device.name ?? "")?.rfcommChannels ?? []
+    let opened = try RFCOMMLink.openControl(device: device, preferred: preferred)
+    let link = opened.link
+    activeLink = link
+    defer { link.close(); activeLink = nil }
+    let (profile, state) = try identify(link)
+    let report = SupportReport(profile: profile, state: state, connected: true, channel: opened.channel).text
+    if let path = args.str("out") {
+        try Data((report + "\n").utf8).write(to: URL(fileURLWithPath: path), options: .withoutOverwriting)
+        log("Support report saved.")
+    } else {
+        log(report)
+    }
 }
 
 func modeSDP() throws {
@@ -561,6 +581,7 @@ func stamp() -> String {
 do {
     switch args.mode {
     case "selftest": modeSelfTest()
+    case "support-report": try modeSupportReport()
     case "sdp":      try modeSDP()
     case "probe":    try modeProbe()
     case "sweep":    try modeSweep()

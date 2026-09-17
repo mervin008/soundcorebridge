@@ -42,6 +42,8 @@ The project is split into a command-line interface (`soundcorectl`, alias `space
   - Keeps unidentified devices read-only; a Bluetooth display name alone never enables writes.
 - **`Sources/soundcorectl/SelfTest.swift`**
   - Diagnostic suite. Runs mock encodings, parser tests, packet reassembly verifications, and preset integrity tests without requiring a real Bluetooth device connected.
+- **`Sources/soundcorectl/SupportReport.swift`**
+  - Shared allowlisted report for the CLI and menu-bar clipboard action. Excludes Bluetooth names, addresses, raw packets, and logs; omits stale identity when disconnected.
 - **`Sources/soundcorectl/Util.swift`**
   - Diagnostic output helpers (hexdump, hex formatter), argument parsing structure, and thread run-loop pumping utilities.
 
@@ -127,6 +129,12 @@ swift run soundcorectl selftest
 ```
 
 ### 2. Live Probing & Analysis
+For an initial device-support issue, use the app's clipboard button or quit the
+app and run `swift run soundcorectl support-report --out support-report.txt`.
+This command uses safe channel discovery and the identity read only; it never
+runs a control handshake or accepts channel/write overrides. The report helps
+triage a model but is not evidence sufficient to enable its controls.
+
 If investigating protocol behavior or testing connection quality, use the CLI diagnostic commands:
 - **List Paired & SDP Records**: `swift run soundcorectl sdp`
 - **One-Shot State Probe**: `swift run soundcorectl probe --cmd 01:01`

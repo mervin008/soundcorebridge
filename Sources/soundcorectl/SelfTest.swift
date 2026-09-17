@@ -115,6 +115,36 @@ func modeSelfTest() {
     if !decodeOK { failures += 1 }
     log("  \(decodeOK ? "PASS" : "FAIL")  Space 2 state blob decodes through its profile")
 
+    log("\nsupport reports")
+    let verifiedReport = SupportReport(profile: space2, state: decoded, connected: true, channel: 30).text
+    let verifiedReportOK = verifiedReport.contains("Model code: 1402")
+        && verifiedReport.contains("Control support: Verified model")
+        && verifiedReport.contains("RFCOMM channel: 30")
+        && !verifiedReport.contains("849D4BB0798F")
+        && !verifiedReport.contains(hex(sampleSpace2State()))
+    if !verifiedReportOK { failures += 1 }
+    log("  \(verifiedReportOK ? "PASS" : "FAIL")  reports verified identity without raw payload or embedded address")
+
+    let unknownReport = SupportReport(profile: nameOnly,
+                                     state: parseState(misleadingState, profile: nameOnly),
+                                     connected: true, channel: 17).text
+    let unknownReportOK = unknownReport.contains("Model code: 9999")
+        && unknownReport.contains("Read-only; model not verified")
+        && !unknownReport.contains("soundMode") && !unknownReport.contains("equaliser")
+    if !unknownReportOK { failures += 1 }
+    log("  \(unknownReportOK ? "PASS" : "FAIL")  unknown model report does not claim verified controls")
+
+    let offlineReport = SupportReport(profile: space2, state: decoded, connected: false, channel: 30).text
+    var malformed = decoded!
+    malformed.firmware = "01.59\nprivate"
+    let malformedReport = SupportReport(profile: space2, state: malformed, connected: true, channel: 30).text
+    let staleReportOK = offlineReport.contains("Model code: Not available")
+        && offlineReport.contains("RFCOMM channel: Not available")
+        && offlineReport.contains("Profile features: None identified")
+        && !malformedReport.contains("private")
+    if !staleReportOK { failures += 1 }
+    log("  \(staleReportOK ? "PASS" : "FAIL")  omits disconnected identity and rejects malformed text fields")
+
     log(failures == 0 ? "\nall checks passed" : "\n\(failures) FAILURE(S)")
     exit(failures == 0 ? 0 : 1)
 }
