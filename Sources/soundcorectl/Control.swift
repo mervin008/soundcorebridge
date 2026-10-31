@@ -3,6 +3,7 @@ import Foundation
 enum DeviceControlError: Error, CustomStringConvertible {
     case unidentifiedModel
     case unsupportedFeature(DeviceFeature, String)
+    case missingSoundModeState
 
     var description: String {
         switch self {
@@ -10,6 +11,8 @@ enum DeviceControlError: Error, CustomStringConvertible {
             return "device model has not been verified for writes"
         case let .unsupportedFeature(feature, model):
             return "\(model) does not have verified \(feature.rawValue) support"
+        case .missingSoundModeState:
+            return "read a valid Liberty 5 sound-mode state before changing modes"
         }
     }
 }
@@ -21,6 +24,10 @@ func handshake(_ link: RFCOMMLink, profile: DeviceProfile) throws {
         throw DeviceControlError.unidentifiedModel
     }
     switch controlProtocol {
+    case .liberty5:
+        // A3957 does not use the Space 2 write-unlock sequence. The caller
+        // already identified it using the device's read-only state request.
+        return
     case .space2:
         try link.send(Command(0x01, 0x01));               pump(0.4)
         try link.send(Command(0x05, 0x01), payload: [1]); pump(0.6)
@@ -33,7 +40,8 @@ func handshake(_ link: RFCOMMLink, profile: DeviceProfile) throws {
     }
 }
 
-func ancWrite(profile: DeviceProfile, mode: ANCMode, level: UInt8) throws -> [UInt8] {
+func ancWrite(profile: DeviceProfile, mode: ANCMode, level: UInt8,
+              currentState: DeviceState? = nil) throws -> [UInt8] {
     guard let controlProtocol = profile.controlProtocol else {
         throw DeviceControlError.unidentifiedModel
     }
@@ -41,12 +49,23 @@ func ancWrite(profile: DeviceProfile, mode: ANCMode, level: UInt8) throws -> [UI
         throw DeviceControlError.unsupportedFeature(.soundMode, profile.displayName)
     }
     switch controlProtocol {
+    case .liberty5:
+        guard currentState?.model == "3957",
+              var payload = currentState?.soundModePayload,
+              payload.count == 7, ANCMode(rawValue: payload[0]) != nil else {
+            throw DeviceControlError.missingSoundModeState
+        }
+        // Preserve strength, in-call awareness, ANC sub-mode, wind settings
+        // and the remaining fields exactly as reported by this device.
+        payload[0] = mode.rawValue
+        return Frame.encode(Command(0x06, 0x81), payload: payload)
     case .space2:
         return Frame.encode(Command(0x06, 0x81), payload: ancPayload(mode, level: level))
     }
 }
 
-func eqWrite(profile: DeviceProfile, id: [UInt8], bands: [UInt8]) throws -> [UInt8] {
+func eqWrite(profile: DeviceProfile, id: [UInt8], bands: [UInt8],
+             currentState: DeviceState? = nil) throws -> [UInt8] {
     guard let controlProtocol = profile.controlProtocol else {
         throw DeviceControlError.unidentifiedModel
     }
@@ -57,7 +76,13 @@ func eqWrite(profile: DeviceProfile, id: [UInt8], bands: [UInt8]) throws -> [UIn
         throw DeviceControlError.unsupportedFeature(.customEQ, profile.displayName)
     }
     switch controlProtocol {
+    case .liberty5:
+        guard currentState?.model == "3957", let current = currentState?.liberty5EQ else {
+            throw ProbeError("read a valid Liberty 5 EQ/HearID state before changing EQ")
+        }
+        return try current.selecting(id: id, bands: bands).packet()
     case .space2:
+        guard id.count == 2, bands.count == 8 else { throw ProbeError("EQ requires a two-byte ID and eight bands") }
         return Frame.encode(Command(0x03, 0x87), payload: eqPayload(id: id, bands: bands))
     }
 }

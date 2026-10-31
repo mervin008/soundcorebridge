@@ -9,6 +9,7 @@ struct ProbeError: Error, CustomStringConvertible {
 struct PairedSoundcoreDevice: Identifiable, Equatable {
     let address: String
     let name: String
+    var isConnected = false
     var id: String { address }
 }
 
@@ -56,12 +57,13 @@ func blockedChannel(_ ch: UInt8, device: IOBluetoothDevice) -> String? {
 let defaultControlChannels: [UInt8] = [30, 17]
 let allowedChannels = Set(defaultControlChannels)
 
-/// Combine model knowledge and cached SDP evidence without ever broadening the
-/// safety allowlist. Kept pure so ordering behavior can be tested offline.
-func orderedControlChannels(preferred: [UInt8], advertised: [UInt8]) -> [UInt8] {
+/// Combine model knowledge, vendor-identified SDP channels and conservative
+/// fallback channels. Kept pure so ordering behavior can be tested offline.
+func orderedControlChannels(preferred: [UInt8], advertised: [UInt8],
+                            vendorChannels: [UInt8] = []) -> [UInt8] {
     var result: [UInt8] = []
     let safeDiscovery = advertised.filter { allowedChannels.contains($0) }
-    for channel in preferred + safeDiscovery + defaultControlChannels
+    for channel in preferred + vendorChannels + safeDiscovery + defaultControlChannels
     where !result.contains(channel) {
         result.append(channel)
     }
@@ -100,13 +102,31 @@ final class RFCOMMLink: NSObject {
         let paired = (IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice]) ?? []
         return paired.compactMap { device in
             guard let address = device.addressString,
-                  DeviceRegistry.isLikelySoundcore(device.name ?? "") else { return nil }
+                  DeviceRegistry.isLikelySoundcore(device.name ?? "")
+                    || !vendorControlChannels(device: device).isEmpty else { return nil }
             return PairedSoundcoreDevice(address: address,
-                                         name: device.name ?? "Soundcore device")
+                                         name: device.name ?? "Soundcore device",
+                                         isConnected: device.isConnected())
         }
         .sorted {
+            if $0.isConnected != $1.isConnected { return $0.isConnected }
             let names = $0.name.localizedCaseInsensitiveCompare($1.name)
             return names == .orderedSame ? $0.address < $1.address : names == .orderedAscending
+        }
+    }
+
+    /// Recognize the vendor control service even when the user has renamed the
+    /// earbuds. Only UUIDs in Soundcore's observed vendor family qualify.
+    static func vendorControlChannels(device: IOBluetoothDevice) -> [UInt8] {
+        ((device.services as? [IOBluetoothSDPServiceRecord]) ?? []).compactMap { record in
+            var channel: BluetoothRFCOMMChannelID = 0
+            guard record.getRFCOMMChannelID(&channel) == kIOReturnSuccess,
+                  blockedChannel(channel, device: device) == nil,
+                  let classes = record.getAttributeDataElement(0x0001) else { return nil }
+            let identity = classes.description.lowercased()
+                .filter { !$0.isWhitespace && $0 != "-" }
+            guard identity.contains("0cf12d31fac34553bd80") else { return nil }
+            return channel
         }
     }
 
@@ -123,7 +143,8 @@ final class RFCOMMLink: NSObject {
     static func controlChannelCandidates(device: IOBluetoothDevice,
                                          preferred: [UInt8]) -> [UInt8] {
         orderedControlChannels(preferred: preferred,
-                               advertised: advertisedChannels(device: device))
+                               advertised: advertisedChannels(device: device),
+                               vendorChannels: vendorControlChannels(device: device))
     }
 
     /// Open the first safe candidate. The primary candidate retains the longer
@@ -136,7 +157,7 @@ final class RFCOMMLink: NSObject {
         for (index, channel) in candidates.enumerated() {
             let link = RFCOMMLink(device: device)
             link.verbose = verbose
-            link.profileChannels = Set(preferred)
+            link.profileChannels = Set(preferred + vendorControlChannels(device: device))
             link.maxOpenAttempts = index == 0 ? 20 : 4
             do {
                 try link.open(channelID: channel)
